@@ -39,6 +39,36 @@ def regexp_is_valid(regexp):
     return is_valid
 
 
+def check_file(infile):
+    if not os.path.isfile(infile):
+        eprint("ERROR: input file %s doesn't exist." % infile)
+        exit(1)
+
+
+def create_dir(dir):
+    if not mkdir_p(dir):
+        eprint("ERROR: couldn't create folder %s." % dir)
+        exit(1)
+
+
+def check_regexp(regexp):
+    if not regexp_is_valid(regexp):
+        eprint("ERROR: \"%s\" is not a valid Python regular expression." % regexp)
+        exit(1)
+
+
+def cut_text(infile, regexp):
+    # Sanity checks
+    if not os.path.isfile(infile) or not regexp_is_valid(regexp):
+        return False
+    compiled_regexp = re.compile(regexp)
+    with open(infile) as inF:
+        for line in inF:
+            print(line.strip())
+            if compiled_regexp.search(line):
+                break
+
+
 def split_text(infile, resdir, regexp):
 
     def get_currfile_name(outfile_basename, filecount, outfile_ext):

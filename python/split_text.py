@@ -34,15 +34,11 @@ class Helper:
         infile = sys.argv[1]
         resdir = sys.argv[2]
         regexp = sys.argv[3]
-        if not os.path.isfile(infile):
-            utils.eprint("ERROR: input file %s doesn't exist." % infile)
-            exit(1)
-        if not utils.mkdir_p(resdir):
-            utils.eprint("ERROR: couldn't create folder %s." % resdir)
-            exit(1)
-        if not utils.regexp_is_valid(regexp):
-            utils.eprint("ERROR: \"%s\" is not a valid Python regular expression." % regexp)
-            exit(1)
+
+        utils.check_file(infile)
+        utils.create_dir(resdir)
+        utils.check_regexp(regexp)
+
         cls.print_script_params(infile, resdir, regexp)
         return (infile, resdir, regexp)
 
