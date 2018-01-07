@@ -4,6 +4,7 @@
 
 from __future__ import print_function
 import os
+import platform
 import re
 import sys
 
@@ -115,5 +116,8 @@ def split_text(infile, resdir, regexp):
         print("NOTE: Regular expression \"%s\" was not matched in input file." % regexp)
     print("NOTE: Input file split into %d files." % filecount)
 
+
+def os_name():
+    return platform.system()
 
 # EOF
