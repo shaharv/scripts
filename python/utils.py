@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-# (c) Shahar Valiano, 2017
+# (c) Shahar Valiano, 2018
 
 from __future__ import print_function
+import ConfigParser
 import os
 import platform
 import re
@@ -119,5 +120,26 @@ def split_text(infile, resdir, regexp):
 
 def os_name():
     return platform.system()
+
+
+def print_dict(dict):
+    for key, val in dict.items():
+        print("%s: %s" % (key, val))
+
+
+def read_config(configFile):
+
+    confDict = {}
+    check_file(configFile)
+
+    config = ConfigParser.RawConfigParser()
+    config.read(configFile)
+
+    for section in config.sections():
+       for (key, val) in config.items(section):
+           confDict[key] = val
+
+    return confDict
+
 
 # EOF
