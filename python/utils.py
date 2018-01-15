@@ -144,8 +144,8 @@ def read_config(configFile):
     return confDict
 
 
-def run_process(cmd):
-    retcode = subprocess.call([cmd], stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+def run_process(cmd, args):
+    retcode = subprocess.call([cmd, args], stdin=PIPE, stdout=PIPE, stderr=STDOUT)
     return retcode
 
 
