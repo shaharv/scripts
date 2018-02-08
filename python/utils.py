@@ -2,6 +2,8 @@
 
 # (c) Shahar Valiano, 2018
 
+from __future__ import print_function
+
 import ConfigParser
 import os
 import platform
@@ -9,7 +11,6 @@ import re
 import subprocess
 import sys
 
-from __future__ import print_function
 from subprocess import PIPE, STDOUT
 
 # -----------------------------------------------------------------------------
