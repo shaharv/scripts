@@ -2,4 +2,4 @@
 
 set -exuo pipefail
 
-javap -p -l -v -s -c $1
+$JAVA_HOME/bin/javap -p -l -v -s -c $1
