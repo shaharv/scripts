@@ -1,14 +1,12 @@
-#!/bin/bash -eu
+#!/bin/bash -e
 
-set +e
-QEMU_PROC=`ps aux | grep qemu-system-x86_64 | grep -v grep`
-set -e
+QEMU_PROC=$(ps aux | grep qemu-system-x86_64 | grep -v grep) || true
 
 if [[ -z "$QEMU_PROC" ]]; then
   echo "No qemu processes detected."
   exit 0
 else
-  echo "qemu process detected!"
+  echo "qemu is already running!"
   echo $QEMU_PROC
   exit 1
 fi

@@ -1,14 +1,12 @@
 #!/bin/bash -eu
 
-set -o pipefail
-
-SCRIPT_NAME=`readlink -f ${BASH_SOURCE[0]}`
-SCRIPT_DIR=`echo $SCRIPT_NAME | xargs dirname`
+SCRIPT_NAME=$(readlink -f ${BASH_SOURCE[0]})
+SCRIPT_DIR=$(dirname $SCRIPT_NAME)
 SRC_FILES=""
 QEMU_DST=""
 QEMU_DIR="$SCRIPT_DIR/../.."
 REMOVE_DST_FOLDER=""
-NOKILL=""
+NOKILL="0"
 
 source $SCRIPT_DIR/qemu_common.sh
 
@@ -38,9 +36,9 @@ function check_args {
 function prep_dest_dir {
   set -x
   if [ "$REMOVE_DST_FOLDER" = "1" ]; then
-    sshpass -p $qemu_pass ssh $qemu_user -p $qemu_port "rm -rf $QEMU_DST"
+    $SCRIPT_DIR/run_on_qemu.sh "rm -rf $QEMU_DST"
   fi
-  sshpass -p $qemu_pass ssh $qemu_user -p $qemu_port "mkdir -p $QEMU_DST"
+  $SCRIPT_DIR/run_on_qemu.sh "mkdir -p $QEMU_DST"
   set +x
 }
 
@@ -51,11 +49,10 @@ function copy_to_qemu {
 }
 
 check_args $@
-start_qemu $QEMU_DIR
-wait_for_qemu
+$SCRIPT_DIR/start_qemu.sh --qemu-dir=$QEMU_DIR --wait
 prep_dest_dir
 copy_to_qemu
-if [ "$NOKILL" = "" ]; then
-  kill_qemu
+if [ "$NOKILL" = "0" ]; then
+  $SCRIPT_DIR/kill_qemu.sh
 fi
 echo "Artifacts copied to qemu."
