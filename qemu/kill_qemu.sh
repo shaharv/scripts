@@ -7,7 +7,7 @@ source $SCRIPT_DIR/qemu_common.sh
 
 echo "Killing QEMU."
 echo "Ask the QEMU Linux to shutdown..."
-sshpass -p $qemu_pass ssh $qemu_user -p $qemu_port "sudo shutdown now" || true
+$qemu_ssh_command "sudo shutdown now" || true
 
 echo "Wait for the QEMU process to finish..."
 timeout 60s bash -c 'until [[ -z $(pgrep qemu-system-x86) ]]; do sleep 1; done' || true

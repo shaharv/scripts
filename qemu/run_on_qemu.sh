@@ -28,7 +28,7 @@ function check_args {
 
 function run_on_qemu {
   set -x
-  timeout "$TIMEOUT_SEC"s sshpass -p $qemu_pass ssh $qemu_user -p $qemu_port $COMMAND
+  timeout "$TIMEOUT_SEC"s $qemu_ssh_command $COMMAND
   set +x
 }
 

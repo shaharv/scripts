@@ -12,7 +12,7 @@ echo "Waiting for QEMU VM to load..."
 # Using "sshpass ssh -o ConnectTimeout=N" is not enough since
 # it would fail with error if host is unreachable (exitcode 255).
 connect_attempts=0
-while ! timeout 10s sshpass -p $qemu_pass ssh $qemu_user -p $qemu_port "cd ."
+while ! timeout 10s $qemu_ssh_command "cd ."
 do
   sleep 5
   let connect_attempts++ || true

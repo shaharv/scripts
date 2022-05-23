@@ -12,15 +12,12 @@ source $SCRIPT_DIR/qemu_common.sh
 
 function check_args {
   if [[ $# -lt 2 ]]; then
-    echo "Usage: $SCRIPT_NAME [--qemu-dir=<qemu path>] <files to copy> <qemu destination folder>"
+    echo "Usage: $SCRIPT_NAME <files to copy> <qemu destination folder>"
     exit 1
   fi
   while [[ $# -gt 1 ]]; do
     OPT=$1
-    if [[ $OPT == "--qemu-dir="* ]]; then
-      QEMU_DIR=${OPT/--qemu-dir=/}
-      echo "Using qemu in $QEMU_DIR"
-    elif [ $OPT = "--remove-dest-folder" ]; then
+    if [ $OPT = "--remove-dest-folder" ]; then
       REMOVE_DST_FOLDER="1"
     elif [ $OPT = "--nokill" ]; then
       NOKILL="1"
@@ -44,12 +41,12 @@ function prep_dest_dir {
 
 function copy_to_qemu {
   set -x
-  sshpass -p $qemu_pass scp -r -P $qemu_port $SRC_FILES $qemu_user:$QEMU_DST
+  $qemu_scp_command $SRC_FILES $qemu_user:$QEMU_DST
   set +x
 }
 
 check_args $@
-$SCRIPT_DIR/start_qemu.sh --qemu-dir=$QEMU_DIR --wait
+$SCRIPT_DIR/start_qemu.sh --wait
 prep_dest_dir
 copy_to_qemu
 if [ "$NOKILL" = "0" ]; then
