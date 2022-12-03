@@ -42,4 +42,5 @@ bin/dsdgen --output-location $OUTPUT_DATA_DIR --scale-factor $SCALE_FACTOR --for
 
 echo $DELIM
 echo "TPC-DS data successfully generated under $OUTPUT_DATA_DIR."
+echo "For further stages set: export TPCDS_DATA_DIR=$OUTPUT_DATA_DIR"
 echo $DELIM

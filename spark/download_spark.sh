@@ -41,4 +41,5 @@ tar xvf $SPARK_ZIP
 # Finish
 echo $DELIM
 echo "Spark $SPARK_VER was extracted to $TEMP_DIR/$SPARK_RELEASE."
+echo "For using Spark in this location: export SPARK_HOME=$TEMP_DIR/$SPARK_RELEASE"
 echo $DELIM
