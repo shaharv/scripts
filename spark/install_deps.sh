@@ -5,7 +5,7 @@ set -euo pipefail
 DELIM="================================================================================"
 
 # Install utilities
-apt install -y unzip
+apt install -y unzip bc
 
 # Install Java 11
 apt install -y openjdk-11-jdk
