@@ -15,6 +15,7 @@ export SPARK_LOCAL_HOSTNAME=${HOSTNAME}
 
 # Set Spark log and work dirs
 SPARK_LOG_DIR=/tmp/spark-logs
+mkdir -p $SPARK_LOG_DIR
 export SPARK_LOCAL_DIRS=/tmp/spark-temp
 export SPARK_WORKER_DIR=/tmp/spark-worker
 export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=$SPARK_LOG_DIR"
