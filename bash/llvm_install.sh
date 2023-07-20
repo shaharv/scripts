@@ -32,4 +32,9 @@ update-alternatives --install /usr/bin/lld lld /usr/bin/lld-$LLVM_VERSION $PRIOR
 update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-$LLVM_VERSION $PRIORITY
 update-alternatives --install /usr/bin/llvm-symbolizer llvm-symbolizer /usr/bin/llvm-symbolizer-$LLVM_VERSION $PRIORITY
 
+# llvm-symbolizer is required for debug information in address sanitizer stack traces.
+# It should be set in the environment of the sanitized program by setting:
+# ASAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
+# See: https://stackoverflow.com/a/36757623/7256341
+
 echo "All done."
