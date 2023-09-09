@@ -1,6 +1,19 @@
-#!/bin/bash -e
+#!/bin/bash
 
-LLVM_VERSION=16
+set -euo pipefail
+
+if [[ $# -eq 0 ]]; then
+    echo "Usage: $0 <llvm major version>"
+    exit 1
+fi
+
+LLVM_VERSION=$1
+NUMBER_REGEX='^[0-9]+$'
+if ! [[ $LLVM_VERSION =~ $NUMBER_REGEX ]]; then
+    echo "Error: invalid version specified: $LLVM_VERSION."
+    exit 1
+fi
+
 PRIORITY=$(( $LLVM_VERSION * 100 ))
 DISTRO=$(lsb_release -c -s)
 
