@@ -2,7 +2,7 @@
 
 SCRIPT_NAME=$(readlink -f ${BASH_SOURCE[0]})
 SCRIPT_DIR=$(dirname $SCRIPT_NAME)
-QEMU_DIR=$SCRIPT_DIR/../..
+QEMU_DIR=$SCRIPT_DIR
 QEMU_ARGS=""
 WAIT_FOR_QEMU="0"
 CONNECT_ATTEMPTS=1
@@ -26,7 +26,7 @@ function check_args {
 
 function start_qemu_once {
   echo "Starting QEMU"
-  $QEMU_DIR/run_ubuntu_str10 $@ &
+  $QEMU_DIR/start_qemu_with_image.sh $@ &
   timeout 10s bash -c 'until [[ ! -z $(pgrep qemu-system-x86) ]]; do sleep 1; done'
   pid=$(pgrep qemu-system-x86)
   echo "QEMU started with pid=$pid"
