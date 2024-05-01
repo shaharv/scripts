@@ -2,13 +2,42 @@
 
 set -euo pipefail
 
-LLVM_VERSION=${1:-`echo 16`}
-PRIORITY=$(( $LLVM_VERSION * 100 ))
+function usage {
+    echo "Usage: $0 --llvm-version <N> [options]"
+    echo
+    echo "Where N is the LLVM major version. For example: $0 --llvm-version 18"
+    echo
+    echo "Options:"
+    echo "--help       Display this usage"
+}
+
+if [[ $# -eq 0 ]]; then
+    usage
+    exit 0
+fi
+
+LLVM_VERSION=0
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help) usage; exit 0;;
+        --llvm-version) shift; LLVM_VERSION=$1; shift;;
+        *) echo "Error: unknown argument: $1"; usage; exit 1;;
+    esac
+done
+
+NUMBER_REGEX='^[0-9]+$'
+if ! [[ $LLVM_VERSION =~ $NUMBER_REGEX ]]; then
+    echo "Error: invalid version specified: $LLVM_VERSION."
+    usage
+    exit 1
+fi
 
 if [ `id -u` != 0 ] ; then
     echo "Must be run as root!"
     exit 1
 fi
+
+PRIORITY=$(( $LLVM_VERSION * 100 ))
 
 update-alternatives --install /usr/bin/clang clang /usr/bin/clang-$LLVM_VERSION $PRIORITY
 update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-$LLVM_VERSION $PRIORITY
