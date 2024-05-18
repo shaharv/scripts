@@ -14,7 +14,7 @@ function port_args() {
 
 ARGS=$@
 PORTS=(1234) # List of ports to open in QEMU
-EXTRA_PORTS=${EXTRA_PORTS:-} # Comma seperated list of port numbers
+EXTRA_PORTS=${EXTRA_PORTS:-} # Comma separated list of port numbers
 QEMU_WORKDIR=${QEMU_WORKDIR:-$HOME/qemu}
 QEMU_LOGS=$QEMU_WORKDIR/logs
 QEMU_QCOW2_IMAGE=$QEMU_WORKDIR/images/ubuntu-desktop-20.04.qcow2
