@@ -3,6 +3,7 @@
 set -eou pipefail
 
 # Script settings
+CORE_ONLY="0"
 APT_INSTALL_CMD="apt-get install -y --no-install-recommends"
 LLVM_VERSION=${LLVM_VERSION:-18}
 CMAKE_VERSION="3.29.2"
@@ -21,8 +22,9 @@ function usage {
     echo "Usage: $0 [<option> [<option ... ]]"
     echo "Options:"
     echo "   --cmake-install-override : Install CMake and override existing CMake version"
-    echo "   --llvm-version <N>       : Set LLVM version to install"
+    echo "   --core-only              : Install the basic set of common packages"
     echo "   --help                   : Display this usage information"
+    echo "   --llvm-version <N>       : Set LLVM version to install"
 }
 
 function setup_apt_utils {
@@ -43,7 +45,7 @@ function setup_apt_utils {
     $APT_INSTALL_CMD software-properties-common gnupg wget
 }
 
-function install_llvm_toolchain {
+function install_llvm {
     # Add repo for LLVM
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
     add-apt-repository "deb http://apt.llvm.org/${LINUX_RELEASE_NAME_LOWERCASE}/ llvm-toolchain-${LINUX_RELEASE_NAME_LOWERCASE}-${LLVM_VERSION} main"
@@ -57,8 +59,9 @@ function install_llvm_toolchain {
     # Install LLVM tools
     $APT_INSTALL_CMD clang-$LLVM_VERSION clang-format-$LLVM_VERSION clang-tidy-$LLVM_VERSION lld-$LLVM_VERSION lldb-$LLVM_VERSION python3-lldb-$LLVM_VERSION
 
-    # Install compiler-rt for sanitizers and llvm-symbolizer for address sanitizer stack traces
-    $APT_INSTALL_CMD llvm-$LLVM_VERSION libclang-rt-$LLVM_VERSION-dev
+    # Install compiler-rt for sanitizers and llvm-symbolizer for address sanitizer stack traces.
+    # The "|| true" is added to avoid failing on llvm-12, where libclang-rt is not available.
+    $APT_INSTALL_CMD llvm-$LLVM_VERSION libclang-rt-$LLVM_VERSION-dev || true
     update-alternatives --install /usr/bin/llvm-symbolizer llvm-symbolizer /usr/bin/llvm-symbolizer-$LLVM_VERSION $(( $LLVM_VERSION * 100 ))
 
     # Set LLVM tools default version
@@ -142,7 +145,7 @@ function install_cmake {
 }
 
 function parse_args {
-    # Check for support script options in the begining of the command line.
+    # Check for supported script options in the beginning of the command line.
     while [[ $# -gt 0 ]]; do
         OPT="$1"
         case $OPT in
@@ -156,6 +159,9 @@ function parse_args {
             --llvm-version)
                 shift;
                 LLVM_VERSION=$1
+                ;;
+            --core-only)
+                CORE_ONLY="1"
                 ;;
             *)  echo "Error: unknown argument: $OPT"
                 usage
@@ -175,39 +181,7 @@ function parse_args {
     fi
 }
 
-function main {
-    parse_args $@
-
-    if [ `id -u` != 0 ] ; then
-        echo "Must be run as root!"
-        exit 1
-    fi
-
-    export DEBIAN_FRONTEND=noninteractive
-
-    setup_apt_utils
-
-    # Install basic packages and utilities
-    $APT_INSTALL_CMD coreutils curl git jq rsync unzip patch parallel p7zip-full
-
-    # Install build tools for Arrow (UCX)
-    $APT_INSTALL_CMD autoconf automake ccache make ninja-build libtool
-
-    # Install the LLVM toolchain
-    install_llvm_toolchain
-
-    # Install GCC compilers
-    install_gcc
-
-    # Download and install recent CMake
-    if [ "$CMAKE_INSTALL_OVERRIDE" == "1" ]; then
-        install_cmake
-    fi
-
-    # Install testing packages, such as latest GDB.
-    # It is done last since it requires setting up testing repositories.
-    install_testing_packages
-
+function finish {
     # Cleanup
     apt autoremove -y
 
@@ -219,4 +193,67 @@ function main {
     echo "========================================"
 }
 
+function main {
+    parse_args $@
+
+    if [ `id -u` != 0 ] ; then
+        echo "Must be run as root!"
+        exit 1
+    fi
+
+    export DEBIAN_FRONTEND=noninteractive
+
+    # Setup apt utilities and detect Linux distro
+    setup_apt_utils
+
+    # Install basic build packages and libraries
+    $APT_INSTALL_CMD \
+        binutils-dev \
+        ccache \
+        cmake \
+        coreutils \
+        curl \
+        jq \
+        rsync \
+        libnuma-dev \
+        libcurl4-openssl-dev \
+        libssl-dev \
+        libz-dev \
+        make \
+        net-tools \
+        netcat \
+        ninja-build \
+        parallel \
+        unzip
+
+    if [ "$CORE_ONLY" == "1" ]; then
+        return
+    fi
+
+    # Install misc. packages for build and CI
+    $APT_INSTALL_CMD doxygen git patch p7zip-full python-yaml
+
+    # Install build packages for Arrow (UCX)
+    $APT_INSTALL_CMD autoconf libtool automake
+
+    # Install GCC compilers
+    install_gcc
+
+    # Download and install recent CMake
+    if [ "$CMAKE_INSTALL_OVERRIDE" == "1" ]; then
+        install_cmake
+    fi
+
+    # Install the LLVM toolchain
+    install_llvm
+
+    # Install testing packages, such as latest GDB.
+    # It is done last since it requires setting up testing repositories.
+    install_testing_packages
+
+    # Install extra python packages
+    pip install codespell
+}
+
 main $@
+finish
