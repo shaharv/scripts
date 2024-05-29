@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-CPPCHECK_GIT_TAG=2.14.0
+CPPCHECK_GIT_TAG=9c4ed8fa58aed48a8a364ee8193ac9ab50a92602 # 2.14.0
 FORCE=""
 
 function usage {
@@ -41,7 +41,7 @@ function prepare {
     # Install script prerequisite packages
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -y
-    apt-get install -y --no-install-recommends ca-certificates curl cmake make g++
+    apt-get install -y --no-install-recommends ca-certificates curl cmake make g++ unzip
 }
 
 function install_cppcheck {
@@ -53,12 +53,12 @@ function install_cppcheck {
 
     # Download cppcheck sources
     cd $CPPCHECK_TEMP_DIR
-    curl -L https://github.com/danmar/cppcheck/archive/refs/tags/$CPPCHECK_GIT_TAG.tar.gz -o $CPPCHECK_GIT_TAG.tar.gz
-    tar -xvf $CPPCHECK_GIT_TAG.tar.gz
+    curl -L https://github.com/danmar/cppcheck/archive/$CPPCHECK_GIT_TAG.zip -o $CPPCHECK_GIT_TAG.zip
+    unzip $CPPCHECK_GIT_TAG.zip
 
     # Build and install
     mkdir build && cd build
-    cmake ../cppcheck-$CPPCHECK_GIT_TAG
+    cmake ../cppcheck-$CPPCHECK_GIT_TAG -DBUILD_GUI=0 -DBUILD_TESTS=0 -DBUILD_CORE_DLL=0
     make -j
     make install
 
