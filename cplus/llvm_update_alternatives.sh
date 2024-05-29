@@ -1,14 +1,17 @@
 #!/bin/bash
 
+# Set LLVM tools default versions using update-alternatives.
+
 set -euo pipefail
 
 function usage {
-    echo "Usage: $0 --llvm-version <N> [options]"
+    echo "Usage: $0 --llvm-version <N>"
     echo
     echo "Where N is the LLVM major version. For example: $0 --llvm-version 18"
     echo
     echo "Options:"
-    echo "--help       Display this usage"
+    echo "--llvm-version <N> Set the LLVM version to be made default"
+    echo "--help             Display this usage"
 }
 
 if [[ $# -eq 0 ]]; then
