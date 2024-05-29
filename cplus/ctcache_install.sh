@@ -13,7 +13,7 @@ set -euo pipefail
 CLANG_TIDY_EXE=/usr/bin/clang-tidy
 CTCACHE_INSTALL_DIR="/usr/local/ctcache"
 CTCACHE_GIT_COMMIT=29b1f6428682302223402b283e4449ac337ae649 # master commit as of Oct 26, 2023
-LLVM_VERSION=16
+LLVM_VERSION=18
 UNINSTALL=""
 
 function usage {
@@ -50,13 +50,13 @@ function uninstall_ctcache {
 function prepare {
     # Check for clang-tidy
     if ! which clang-tidy-$LLVM_VERSION >/dev/null; then
-       echo "clang-tidy-$LLVM_VERSION is not found. Please install it by running './llvm_install.sh --version 16'."
+       echo "clang-tidy-$LLVM_VERSION is not found. Please install it by running \"./llvm_install.sh --version $LLVM_VERSION\"."
        exit 1
     fi
 
     # Check for run-clang-tidy
     if ! which run-clang-tidy-$LLVM_VERSION >/dev/null; then
-       echo "run-clang-tidy-$LLVM_VERSION is not found. Please install it by running './llvm_install.sh --version 16'."
+       echo "run-clang-tidy-$LLVM_VERSION is not found. Please install it by running \"./llvm_install.sh --version $LLVM_VERSION\"."
        exit 1
     fi
 
@@ -97,7 +97,7 @@ function create_wrapper_script {
     # Example for the generated script:
     #
     # !/bin/bash -eu
-    # export CTCACHE_CLANG_TIDY=${CTCACHE_CLANG_TIDY:-/usr/bin/clang-tidy-16}
+    # export CTCACHE_CLANG_TIDY=${CTCACHE_CLANG_TIDY:-/usr/bin/clang-tidy-18}
     # export CTCACHE_DIR=${CTCACHE_DIR:-$HOME/.ctcache}
     # /home/shahar/ctcache/clang-tidy "${@}"
     #
