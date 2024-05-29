@@ -45,32 +45,6 @@ function setup_apt_utils {
     $APT_INSTALL_CMD software-properties-common gnupg wget
 }
 
-function install_llvm {
-    # Add repo for LLVM
-    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-    add-apt-repository "deb http://apt.llvm.org/${LINUX_RELEASE_NAME_LOWERCASE}/ llvm-toolchain-${LINUX_RELEASE_NAME_LOWERCASE}-${LLVM_VERSION} main"
-
-    # Update the list of packages
-    apt-get update
-
-    # Install LLVM libc++
-    $APT_INSTALL_CMD libc++-$LLVM_VERSION-dev libc++abi-$LLVM_VERSION-dev libc++1-$LLVM_VERSION libc++abi1-$LLVM_VERSION libunwind-$LLVM_VERSION
-
-    # Install LLVM tools
-    $APT_INSTALL_CMD clang-$LLVM_VERSION clang-format-$LLVM_VERSION clang-tidy-$LLVM_VERSION lld-$LLVM_VERSION lldb-$LLVM_VERSION python3-lldb-$LLVM_VERSION
-
-    # Install compiler-rt for sanitizers and llvm-symbolizer for address sanitizer stack traces.
-    # The "|| true" is added to avoid failing on llvm-12, where libclang-rt is not available.
-    $APT_INSTALL_CMD llvm-$LLVM_VERSION libclang-rt-$LLVM_VERSION-dev || true
-    update-alternatives --install /usr/bin/llvm-symbolizer llvm-symbolizer /usr/bin/llvm-symbolizer-$LLVM_VERSION $(( $LLVM_VERSION * 100 ))
-
-    # Set LLVM tools default version
-    $SCRIPT_DIR/llvm_update_alternatives.sh --llvm-version $LLVM_VERSION
-
-    # Install ctcache
-    $SCRIPT_DIR/ctcache_install.sh --llvm-version=$LLVM_VERSION
-}
-
 # Install GCC.
 # libstdc++-10-dev (complementing g++-10) is a C++ runtime providing near complete C++20 support.
 # When running on older distributions (Debian 10), don't attempt to install GCC 10,
@@ -144,6 +118,35 @@ function install_cmake {
     update-alternatives --install /usr/bin/cmake cmake ${CMAKE_INSTALL_DIR}/bin/cmake $MAX_PRIORITY
 }
 
+function install_llvm {
+    # Add repo for LLVM
+    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+    add-apt-repository "deb http://apt.llvm.org/${LINUX_RELEASE_NAME_LOWERCASE}/ llvm-toolchain-${LINUX_RELEASE_NAME_LOWERCASE}-${LLVM_VERSION} main"
+
+    # Update the list of packages
+    apt-get update
+
+    # Install compiler-rt for sanitizers and llvm-symbolizer for address sanitizer stack traces.
+    # The "|| true" is added to avoid failing on llvm-12, where libclang-rt is not available.
+    $APT_INSTALL_CMD llvm-$LLVM_VERSION libclang-rt-$LLVM_VERSION-dev || true
+    update-alternatives --install /usr/bin/llvm-symbolizer llvm-symbolizer /usr/bin/llvm-symbolizer-$LLVM_VERSION $(( $LLVM_VERSION * 100 ))
+
+    if [ "$CORE_ONLY" == "1" ]; then
+        return
+    fi
+
+    # Install LLVM libc++
+    $APT_INSTALL_CMD libc++-$LLVM_VERSION-dev libc++abi-$LLVM_VERSION-dev libc++1-$LLVM_VERSION libc++abi1-$LLVM_VERSION libunwind-$LLVM_VERSION
+
+    # Install LLVM tools
+    $APT_INSTALL_CMD clang-$LLVM_VERSION clang-format-$LLVM_VERSION clang-tidy-$LLVM_VERSION lld-$LLVM_VERSION lldb-$LLVM_VERSION python3-lldb-$LLVM_VERSION
+
+    # Set LLVM tools default version
+    $SCRIPT_DIR/llvm_update_alternatives.sh --llvm-version $LLVM_VERSION
+
+    # Install ctcache
+    $SCRIPT_DIR/ctcache_install.sh --llvm-version=$LLVM_VERSION
+}
 function parse_args {
     # Check for supported script options in the beginning of the command line.
     while [[ $# -gt 0 ]]; do
@@ -226,6 +229,10 @@ function main {
         parallel \
         unzip
 
+    # Install the LLVM toolchain.
+    # When CORE_ONLY is set, only install the LLVM runtime libraries and llvm-symbolizer.
+    install_llvm
+
     if [ "$CORE_ONLY" == "1" ]; then
         return
     fi
@@ -244,15 +251,15 @@ function main {
         install_cmake
     fi
 
-    # Install the LLVM toolchain
-    install_llvm
-
     # Install testing packages, such as latest GDB.
     # It is done last since it requires setting up testing repositories.
     install_testing_packages
 
     # Install extra python packages
     pip install codespell
+
+    # Install cppcheck
+    $SCRIPT_DIR/cppcheck_install.sh
 }
 
 main $@
