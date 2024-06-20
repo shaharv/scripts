@@ -4,10 +4,11 @@ set -eou pipefail
 
 # Script settings
 CORE_ONLY="0"
-APT_INSTALL_CMD="apt-get install -y --no-install-recommends"
-LLVM_VERSION=${LLVM_VERSION:-18}
-CMAKE_VERSION="3.29.2"
-CMAKE_INSTALL_DIR=${CMAKE_INSTALL_DIR:-/usr/local/cmake}
+INSTALL_CMD=""
+UPDATE_CMD=""
+REMOVE_CMD=""
+AUTOREMOVE_CMD=""
+LLVM_VERSION=18
 CMAKE_INSTALL_OVERRIDE="0"
 
 # Script variables/parameters
@@ -29,10 +30,7 @@ function usage {
 
 function setup_apt_utils {
     # Install lsb-release
-    apt-get update && $APT_INSTALL_CMD lsb-release
-
-    # Get distro name (e.g. Ubuntu, Debian)
-    LINUX_DISTRO=$(lsb_release -is)
+    $UPDATE_CMD && $INSTALL_CMD lsb-release
 
     # Get release name (e.g. Focal, Buster)
     LINUX_RELEASE_NAME=$(lsb_release -cs)
@@ -42,80 +40,58 @@ function setup_apt_utils {
     LINUX_RELEASE_NUM=$(lsb_release -rs)
 
     # Install add-apt-repository and basic packages
-    $APT_INSTALL_CMD software-properties-common gnupg wget
+    $INSTALL_CMD software-properties-common gnupg
 }
 
 # Install GCC.
-# libstdc++-10-dev (complementing g++-10) is a C++ runtime providing near complete C++20 support.
+# libstdc++-10-dev (complementing g++-10) is the minimal GNU C++ runtime providing almost full C++20 support.
 # When running on older distributions (Debian 10), don't attempt to install GCC 10,
 # to avoid upgrading libc6.
 function install_gcc {
-    # Install the system default GCC compilers first
-    $APT_INSTALL_CMD gcc g++
+    if [ "${LINUX_DISTRO}" = "centos" ]; then
+        # After installing gcc toolchain on CentOS, it should be set to use gcc-10 with the
+        # following command: "scl enable devtoolset-10 bash"
+        $INSTALL_CMD centos-release-scl
+        $INSTALL_CMD devtoolset-10-gcc devtoolset-10-gcc-c++
+    else
+        # Install the system default GCC compilers first
+        $INSTALL_CMD gcc g++
 
-    GCC_10_PACKAGES="gcc-10 g++-10 libstdc++-10-dev"
-    UBUNTU_RELEASE_NUM=${LINUX_RELEASE_NUM%.*} # Remove the fraction part, keeping only major version
-    DEBIAN_RELEASE_NUM=${LINUX_RELEASE_NUM}
+        GCC_10_PACKAGES="gcc-10 g++-10 libstdc++-10-dev"
+        UBUNTU_RELEASE_NUM=${LINUX_RELEASE_NUM%.*} # Remove the fraction part, keeping only major version
+        DEBIAN_RELEASE_NUM=${LINUX_RELEASE_NUM}
 
-    # If Ubuntu/Debian version is recent, install GCC 10 from default repos.
-    # Otherwise, don't attempt to install it, as it may upgrade the glibc version
-    # (libc6 package).
-    if [ "${LINUX_DISTRO}" = "Ubuntu" ] && [[ ${UBUNTU_RELEASE_NUM} -ge 20 ]]; then
-        $APT_INSTALL_CMD $GCC_10_PACKAGES
-        return
-    elif [ "${LINUX_DISTRO}" = "Debian" ] && [[ ${DEBIAN_RELEASE_NUM} -ge 11 ]]; then
-        $APT_INSTALL_CMD $GCC_10_PACKAGES
-        return
+        # If Ubuntu/Debian version is recent, install GCC 10 from default repos.
+        # Otherwise, don't attempt to install it, as it may upgrade the glibc version
+        # (libc6 package).
+        if [ "${LINUX_DISTRO}" = "ubuntu" ] && [[ ${UBUNTU_RELEASE_NUM} -ge 20 ]]; then
+            $INSTALL_CMD $GCC_10_PACKAGES
+            return
+        elif [ "${LINUX_DISTRO}" = "debian" ] && [[ ${DEBIAN_RELEASE_NUM} -ge 11 ]]; then
+            $INSTALL_CMD $GCC_10_PACKAGES
+            return
+        fi
     fi
 }
 
 function install_testing_packages {
-    if ! [ "${LINUX_DISTRO}" = "Ubuntu" ]; then
+    if ! [ "${LINUX_DISTRO}" = "ubuntu" ]; then
         echo "Only installing testing packages on Ubuntu (our development distro)."
         return
     fi
 
     # Setup the testing repository
     add-apt-repository -y "${UBUNTU_TESTING_REPO}"
-    apt-get update
+    $UPDATE_CMD
 
     # Install latest gdb version
-    $APT_INSTALL_CMD gdb
+    $INSTALL_CMD gdb
 
     # Install latest available cmake from testing package.
     # Ubuntu 20.04 ships with cmake 3.16.3 which is too old.
     if [ "$CMAKE_INSTALL_OVERRIDE" == 0 ]; then
-        $APT_INSTALL_CMD cmake
+        $INSTALL_CMD cmake
     fi
-}
-
-function install_cmake {
-    # Set temporary work dir
-    TEMP_DIR=$(mktemp -d)
-    trap "rm -rf $TEMP_DIR" EXIT
-    cd $TEMP_DIR
-
-    # Remove previously installed cmake package
-    apt-get remove -y cmake cmake-data
-
-    # Download and extract the CMake tarball
-    CMAKE_RELEASE_NAME=cmake-${CMAKE_VERSION}-linux-x86_64
-    CMAKE_TARBALL=${CMAKE_RELEASE_NAME}.tar.gz
-    wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${CMAKE_TARBALL}
-    tar -zxvf ${CMAKE_TARBALL}
-
-    # Remove the destination install folder if already exists
-    if [ -d ${CMAKE_INSTALL_DIR} ]; then
-        echo "Destination ${CMAKE_INSTALL_DIR} exists; removing previous installation."
-        rm -r ${CMAKE_INSTALL_DIR}
-    fi
-
-    # Move cmake to the destination folder
-    mv ${CMAKE_RELEASE_NAME} ${CMAKE_INSTALL_DIR}
-
-    # Make this the default cmake
-    MAX_PRIORITY=2147483647
-    update-alternatives --install /usr/bin/cmake cmake ${CMAKE_INSTALL_DIR}/bin/cmake $MAX_PRIORITY
 }
 
 function install_llvm {
@@ -124,11 +100,11 @@ function install_llvm {
     add-apt-repository "deb http://apt.llvm.org/${LINUX_RELEASE_NAME_LOWERCASE}/ llvm-toolchain-${LINUX_RELEASE_NAME_LOWERCASE}-${LLVM_VERSION} main"
 
     # Update the list of packages
-    apt-get update
+    $UPDATE_CMD
 
     # Install compiler-rt for sanitizers and llvm-symbolizer for address sanitizer stack traces.
     # The "|| true" is added to avoid failing on llvm-12, where libclang-rt is not available.
-    $APT_INSTALL_CMD llvm-$LLVM_VERSION libclang-rt-$LLVM_VERSION-dev || true
+    $INSTALL_CMD llvm-$LLVM_VERSION libclang-rt-$LLVM_VERSION-dev || true
     update-alternatives --install /usr/bin/llvm-symbolizer llvm-symbolizer /usr/bin/llvm-symbolizer-$LLVM_VERSION $(( $LLVM_VERSION * 100 ))
 
     if [ "$CORE_ONLY" == "1" ]; then
@@ -136,10 +112,10 @@ function install_llvm {
     fi
 
     # Install LLVM libc++
-    $APT_INSTALL_CMD libc++-$LLVM_VERSION-dev libc++abi-$LLVM_VERSION-dev libc++1-$LLVM_VERSION libc++abi1-$LLVM_VERSION libunwind-$LLVM_VERSION
+    $INSTALL_CMD libc++-$LLVM_VERSION-dev libc++abi-$LLVM_VERSION-dev libc++1-$LLVM_VERSION libc++abi1-$LLVM_VERSION libunwind-$LLVM_VERSION
 
     # Install LLVM tools
-    $APT_INSTALL_CMD clang-$LLVM_VERSION clang-format-$LLVM_VERSION clang-tidy-$LLVM_VERSION lld-$LLVM_VERSION lldb-$LLVM_VERSION python3-lldb-$LLVM_VERSION
+    $INSTALL_CMD clang-$LLVM_VERSION clang-format-$LLVM_VERSION clang-tidy-$LLVM_VERSION lld-$LLVM_VERSION lldb-$LLVM_VERSION python3-lldb-$LLVM_VERSION
 
     # Set LLVM tools default version
     $SCRIPT_DIR/llvm_update_alternatives.sh --llvm-version $LLVM_VERSION
@@ -179,14 +155,12 @@ function parse_args {
         echo "Error: invalid LLVM version specified: $LLVM_VERSION"
         usage
         exit 1
-    else
-        echo "LLVM version to install: $LLVM_VERSION"
     fi
 }
 
 function finish {
     # Cleanup
-    apt autoremove -y
+    $AUTOREMOVE_CMD
 
     # Print the GLIBC version
     ldd --version
@@ -204,24 +178,36 @@ function main {
         exit 1
     fi
 
-    export DEBIAN_FRONTEND=noninteractive
+    # Get distro ID (e.g. ubuntu, debian, centos)
+    LINUX_DISTRO=$(grep "\bID\=" /etc/os-release | sed s/^ID\=// | tr -d '"')
 
-    # Setup apt utilities and detect Linux distro
-    setup_apt_utils
+    echo "Installing packages for $LINUX_DISTRO."
+
+    if [ $LINUX_DISTRO = "centos" ]; then
+        INSTALL_CMD="yum install -y"
+        UPDATE_CMD="yum update -y"
+        REMOVE_CMD="yum remove -y"
+        AUTOREMOVE_CMD="yum autoremove -y"
+    else
+        INSTALL_CMD="apt-get install -y --no-install-recommends"
+        UPDATE_CMD="apt-get update -y"
+        REMOVE_CMD="apt-get remove -y"
+        AUTOREMOVE_CMD="apt-get autoremove -y"
+
+        export DEBIAN_FRONTEND=noninteractive
+        echo "LLVM version to install: $LLVM_VERSION"
+    fi
+
+    $UPDATE_CMD
 
     # Install basic build packages and libraries
-    $APT_INSTALL_CMD \
-        binutils-dev \
+    $INSTALL_CMD \
         ccache \
         cmake \
         coreutils \
         curl \
         jq \
         rsync \
-        libnuma-dev \
-        libcurl4-openssl-dev \
-        libssl-dev \
-        libz-dev \
         make \
         net-tools \
         netcat \
@@ -229,34 +215,62 @@ function main {
         parallel \
         unzip
 
-    # Install the LLVM toolchain.
+    if [ $LINUX_DISTRO = "centos" ]; then
+        $INSTALL_CMD epel-release
+    else
+        setup_apt_utils
+    fi
+
+    if [ $LINUX_DISTRO = "centos" ]; then
+        $INSTALL_CMD \
+            binutils-devel \
+            numactl-devel \
+            openssl-devel \
+            p7zip \
+            which \
+            zlib-devel
+    else
+        $INSTALL_CMD \
+            binutils-dev \
+            libnuma-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libz-dev \
+            p7zip-full
+    fi
+
+    # Install the LLVM toolchain on Ubuntu/Debian.
+    # On CentOS, skip LLVM installation, as nightly LLVM packages are not available for CentOS.
     # When CORE_ONLY is set, only install the LLVM runtime libraries and llvm-symbolizer.
-    install_llvm
+    if [ $LINUX_DISTRO != "centos" ]; then
+        install_llvm
+    fi
 
     if [ "$CORE_ONLY" == "1" ]; then
         return
     fi
 
     # Install misc. packages for build and CI
-    $APT_INSTALL_CMD doxygen git patch p7zip-full python-yaml
+    $INSTALL_CMD doxygen git patch p7zip-full python-yaml
 
     # Install build packages for Arrow (UCX)
-    $APT_INSTALL_CMD autoconf libtool automake
+    $INSTALL_CMD autoconf libtool automake
 
     # Install GCC compilers
     install_gcc
 
     # Download and install recent CMake
     if [ "$CMAKE_INSTALL_OVERRIDE" == "1" ]; then
-        install_cmake
+        $SCRIPT_DIR/cmake_install.sh
     fi
 
     # Install testing packages, such as latest GDB.
     # It is done last since it requires setting up testing repositories.
     install_testing_packages
 
-    # Install extra python packages
-    pip install codespell
+    # Install pip3 and extra python packages.
+    $INSTALL_CMD python3-pip
+    pip3 install codespell pyyaml
 
     # Install cppcheck
     $SCRIPT_DIR/cppcheck_install.sh
