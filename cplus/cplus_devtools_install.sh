@@ -112,6 +112,7 @@ function install_llvm {
     # Install ctcache
     $SCRIPT_DIR/ctcache_install.sh --llvm-version=$LLVM_VERSION
 }
+
 function parse_args {
     # Check for supported script options in the beginning of the command line.
     while [[ $# -gt 0 ]]; do
