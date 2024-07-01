@@ -2,7 +2,8 @@
 
 set -eou pipefail
 
-CMAKE_VERSION="3.29.4"
+SCRIPT_DIR="$(realpath $(dirname $0))"
+CMAKE_VERSION=${CMAKE_VERSION:-"3.29.4"}
 CMAKE_INSTALL_DIR=${CMAKE_INSTALL_DIR:-/usr/local/cmake}
 FORCE="0"
 
@@ -101,25 +102,12 @@ function main {
         exit 1
     fi
 
-    # Get distro ID (e.g. ubuntu, debian, centos)
-    LINUX_DISTRO=$(grep "\bID\=" /etc/os-release | sed s/^ID\=// | tr -d '"')
+    source $SCRIPT_DIR/linux_distro_detect.sh
 
-    echo "Detected Linux distro: $LINUX_DISTRO."
+    export DEBIAN_FRONTEND=noninteractive
 
-    if [ $LINUX_DISTRO = "centos" ]; then
-        INSTALL_CMD="yum install -y"
-        UPDATE_CMD="yum update -y"
-        REMOVE_CMD="yum remove -y"
-        AUTOREMOVE_CMD="yum autoremove -y"
-    else
-        INSTALL_CMD="apt-get install -y --no-install-recommends"
-        UPDATE_CMD="apt-get update -y"
-        REMOVE_CMD="apt-get remove -y"
-        AUTOREMOVE_CMD="apt-get autoremove -y"
-        export DEBIAN_FRONTEND=noninteractive
-    fi
-
-    $INSTALL_CMD wget
+    $UPDATE_CMD
+    $INSTALL_CMD wget ca-certificates bc
     if [ $LINUX_DISTRO = "centos" ]; then
         $INSTALL_CMD which
     fi
