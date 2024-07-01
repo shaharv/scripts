@@ -37,17 +37,11 @@ function prepare {
     fi
 
     # Detect the Linux OS and set package manager commands
-    LINUX_DISTRO=$(grep "\bID\=" /etc/os-release | sed s/^ID\=// | tr -d '"')
-    if [ $LINUX_DISTRO = "centos" ]; then
-        INSTALL_CMD="yum install -y"
-        UPDATE_CMD="yum update -y"
-        $INSTALL_CMD redhat-lsb-core which
-    else
-        # By default assume a Debian based distro (such as Ubuntu)
-        export DEBIAN_FRONTEND=noninteractive
-        INSTALL_CMD="apt install -y --no-install-recommends"
-        UPDATE_CMD="apt-get update -y"
-    fi
+    source $SCRIPT_DIR/linux_distro_detect.sh
+
+    # Install the which package if it exists.
+    # The which command is not available by default on all Linux distributions.
+    (set +e; $INSTALL_CMD which 2>/dev/null || true)
 
     CPPCHECK_EXE=$(which cppcheck || true)
     if [ ! -z ${CPPCHECK_EXE} ] && [ -z ${FORCE} ]; then
@@ -57,21 +51,25 @@ function prepare {
 }
 
 function install_deps {
+    export DEBIAN_FRONTEND=noninteractive
+
     # Install prerequisite packages
     $UPDATE_CMD
-    $INSTALL_CMD ca-certificates curl make g++ unzip
-
-    # Install recent CMake
-    $SCRIPT_DIR/cmake_install.sh
+    $INSTALL_CMD ca-certificates curl make unzip
 
     # Install gcc 10.
     # Don't attempt to install gcc 10 on Debian, as it can bump the glibc version.
     if [ $LINUX_DISTRO = "centos" ]; then
         $INSTALL_CMD centos-release-scl
         $INSTALL_CMD devtoolset-10-gcc devtoolset-10-gcc-c++
-    elif [ $LINUX_DISTRO = "ubuntu" ]; then
-        $INSTALL_CMD gcc-10 g++-10
+    elif [ $LINUX_DISTRO = "almalinux" ]; then
+        $INSTALL_CMD gcc-toolset-10-gcc gcc-toolset-10-gcc-c++
+    else
+        $INSTALL_CMD gcc g++
     fi
+
+    # Install recent CMake
+    $SCRIPT_DIR/cmake_install.sh
 }
 
 function install_cppcheck {
@@ -89,11 +87,13 @@ function install_cppcheck {
     # Configure
     mkdir build && cd build
     CPPCHECK_SRC_DIR=$(realpath ../cppcheck-$CPPCHECK_GIT_TAG)
-    CONFIGURE_COMMAND="$CMAKE_ROOT_DIR/bin/cmake $CPPCHECK_SRC_DIR -DBUILD_GUI=0 -DBUILD_TESTS=0 -DBUILD_CORE_DLL=0"
+    CONFIGURE_COMMAND="$CMAKE_ROOT_DIR/bin/cmake $CPPCHECK_SRC_DIR -DBUILD_GUI=0 -DBUILD_TESTS=0 -DDISABLE_DMAKE=1 -DCMAKE_CXX_COMPILER=g++"
+    echo $CONFIGURE_COMMAND > $CPPCHECK_TEMP_DIR/configure.sh
+    chmod +x $CPPCHECK_TEMP_DIR/configure.sh
     if [ $LINUX_DISTRO = "centos" ]; then
-        echo $CONFIGURE_COMMAND > $CPPCHECK_TEMP_DIR/configure.sh
-        chmod +x $CPPCHECK_TEMP_DIR/configure.sh
         scl enable devtoolset-10 "bash -c $CPPCHECK_TEMP_DIR/configure.sh"
+    elif [ $LINUX_DISTRO = "almalinux" ]; then
+        scl enable gcc-toolset-10 "bash -c $CPPCHECK_TEMP_DIR/configure.sh"
     else
         $CONFIGURE_COMMAND
     fi
