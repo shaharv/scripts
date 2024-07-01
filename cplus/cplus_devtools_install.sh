@@ -10,49 +10,38 @@ REMOVE_CMD=""
 AUTOREMOVE_CMD=""
 LLVM_VERSION=18
 CMAKE_INSTALL_OVERRIDE="0"
+CPPCHECK_SKIP="0"
 
 # Script variables/parameters
 SCRIPT_DIR=$(realpath $(dirname $0))
 LINUX_DISTRO=""
 LINUX_RELEASE_NUM=""
 LINUX_RELEASE_NAME=""
-LINUX_RELEASE_NAME_LOWERCASE=""
-UBUNTU_TESTING_REPO="ppa:ubuntu-toolchain-r/test"
 
 function usage {
     echo "Usage: $0 [<option> [<option ... ]]"
     echo "Options:"
     echo "   --cmake-install-override : Install CMake and override existing CMake version"
     echo "   --core-only              : Install the basic set of common packages"
+    echo "   --cppcheck-skip          : Do not install cppcheck"
     echo "   --help                   : Display this usage information"
     echo "   --llvm-version <N>       : Set LLVM version to install"
 }
 
-function setup_apt_utils {
-    # Install lsb-release
-    $UPDATE_CMD && $INSTALL_CMD lsb-release
-
-    # Get release name (e.g. Focal, Buster)
-    LINUX_RELEASE_NAME=$(lsb_release -cs)
-    LINUX_RELEASE_NAME_LOWERCASE=${LINUX_RELEASE_NAME,,}
-
-    # Get release number (e.g. 20.04, 10)
-    LINUX_RELEASE_NUM=$(lsb_release -rs)
-
-    # Install add-apt-repository and basic packages
-    $INSTALL_CMD software-properties-common gnupg
-}
-
 # Install GCC.
 # libstdc++-10-dev (complementing g++-10) is the minimal GNU C++ runtime providing almost full C++20 support.
-# When running on older distributions (Debian 10), don't attempt to install GCC 10,
+# When running on older Debian distributions, don't attempt to install GCC 10,
 # to avoid upgrading libc6.
 function install_gcc {
     if [ "${LINUX_DISTRO}" = "centos" ]; then
-        # After installing gcc toolchain on CentOS, it should be set to use gcc-10 with the
+        # After installing gcc 10 toolchain on CentOS, enable it with the
         # following command: "scl enable devtoolset-10 bash"
         $INSTALL_CMD centos-release-scl
         $INSTALL_CMD devtoolset-10-gcc devtoolset-10-gcc-c++
+    elif [ "${LINUX_DISTRO}" = "almalinux" ]; then
+        # After installing gcc 10 toolchain on AlmaLinux, enable it with the
+        # following command: "scl enable gcc-toolset-10 bash"
+        $INSTALL_CMD gcc-toolset-10-gcc gcc-toolset-10-gcc-c++
     else
         # Install the system default GCC compilers first
         $INSTALL_CMD gcc g++
@@ -81,7 +70,7 @@ function install_testing_packages {
     fi
 
     # Setup the testing repository
-    add-apt-repository -y "${UBUNTU_TESTING_REPO}"
+    add-apt-repository -y ppa:ubuntu-toolchain-r/test
     $UPDATE_CMD
 
     # Install latest gdb version
@@ -97,7 +86,7 @@ function install_testing_packages {
 function install_llvm {
     # Add repo for LLVM
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-    add-apt-repository "deb http://apt.llvm.org/${LINUX_RELEASE_NAME_LOWERCASE}/ llvm-toolchain-${LINUX_RELEASE_NAME_LOWERCASE}-${LLVM_VERSION} main"
+    add-apt-repository -y "deb http://apt.llvm.org/${LINUX_RELEASE_NAME}/ llvm-toolchain-${LINUX_RELEASE_NAME}-${LLVM_VERSION} main"
 
     # Update the list of packages
     $UPDATE_CMD
@@ -105,7 +94,7 @@ function install_llvm {
     # Install compiler-rt for sanitizers and llvm-symbolizer for address sanitizer stack traces.
     # The "|| true" is added to avoid failing on llvm-12, where libclang-rt is not available.
     $INSTALL_CMD llvm-$LLVM_VERSION libclang-rt-$LLVM_VERSION-dev || true
-    update-alternatives --install /usr/bin/llvm-symbolizer llvm-symbolizer /usr/bin/llvm-symbolizer-$LLVM_VERSION $(( $LLVM_VERSION * 100 ))
+    update-alternatives --install /usr/bin/llvm-symbolizer llvm-symbolizer /usr/bin/llvm-symbolizer-$LLVM_VERSION $(( $LLVM_VERSION * 100 )) || true
 
     if [ "$CORE_ONLY" == "1" ]; then
         return
@@ -142,6 +131,9 @@ function parse_args {
             --core-only)
                 CORE_ONLY="1"
                 ;;
+            --cppcheck-skip)
+                CPPCHECK_SKIP="1"
+                ;;
             *)  echo "Error: unknown argument: $OPT"
                 usage
                 exit 1
@@ -173,35 +165,35 @@ function finish {
 function main {
     parse_args $@
 
-    if [ `id -u` != 0 ] ; then
+    if [ `id -u` != 0 ]; then
         echo "Must be run as root!"
         exit 1
     fi
 
-    # Get distro ID (e.g. ubuntu, debian, centos)
-    LINUX_DISTRO=$(grep "\bID\=" /etc/os-release | sed s/^ID\=// | tr -d '"')
+    source $SCRIPT_DIR/linux_distro_detect.sh
 
     echo "Installing packages for $LINUX_DISTRO."
+    echo "LLVM version to install: $LLVM_VERSION"
 
-    if [ $LINUX_DISTRO = "centos" ]; then
-        INSTALL_CMD="yum install -y"
-        UPDATE_CMD="yum update -y"
-        REMOVE_CMD="yum remove -y"
-        AUTOREMOVE_CMD="yum autoremove -y"
-    else
-        INSTALL_CMD="apt-get install -y --no-install-recommends"
-        UPDATE_CMD="apt-get update -y"
-        REMOVE_CMD="apt-get remove -y"
-        AUTOREMOVE_CMD="apt-get autoremove -y"
-
-        export DEBIAN_FRONTEND=noninteractive
-        echo "LLVM version to install: $LLVM_VERSION"
-    fi
+    export DEBIAN_FRONTEND=noninteractive
 
     $UPDATE_CMD
 
+    if [[ $LINUX_DISTRO = "centos" || $LINUX_DISTRO = "almalinux" ]]; then
+        $INSTALL_CMD epel-release
+        if [ $LINUX_DISTRO = "almalinux" ]; then
+            yum config-manager --set-enabled powertools
+        fi
+        $UPDATE_CMD
+    else
+        # Install add-apt-repository and basic packages
+        $UPDATE_CMD && $INSTALL_CMD software-properties-common gnupg lsb-release
+    fi
+
     # Install basic build packages and libraries
     $INSTALL_CMD \
+        bc \
+        ca-certificates \
         ccache \
         cmake \
         coreutils \
@@ -210,20 +202,15 @@ function main {
         rsync \
         make \
         net-tools \
-        netcat \
         ninja-build \
         parallel \
-        unzip
+        unzip \
+        wget
 
-    if [ $LINUX_DISTRO = "centos" ]; then
-        $INSTALL_CMD epel-release
-    else
-        setup_apt_utils
-    fi
-
-    if [ $LINUX_DISTRO = "centos" ]; then
+    if [[ $LINUX_DISTRO = "centos" || $LINUX_DISTRO = "almalinux" ]]; then
         $INSTALL_CMD \
             binutils-devel \
+            netcat \
             numactl-devel \
             openssl-devel \
             p7zip \
@@ -232,6 +219,7 @@ function main {
     else
         $INSTALL_CMD \
             binutils-dev \
+            netcat-openbsd \
             libnuma-dev \
             libcurl4-openssl-dev \
             libssl-dev \
@@ -239,11 +227,15 @@ function main {
             p7zip-full
     fi
 
-    # Install the LLVM toolchain on Ubuntu/Debian.
-    # On CentOS, skip LLVM installation, as nightly LLVM packages are not available for CentOS.
+    # Install the LLVM toolchain on Ubuntu/Debian 10.
+    # On CentOS, we skip LLVM installation, as nightly LLVM packages are not available for CentOS.
     # When CORE_ONLY is set, only install the LLVM runtime libraries and llvm-symbolizer.
-    if [ $LINUX_DISTRO != "centos" ]; then
+    if [[ $LINUX_DISTRO = "ubuntu" ]] || [[ $LINUX_DISTRO = "debian" && $LINUX_RELEASE_NUM -eq 10 ]]; then
         install_llvm
+    elif [[ $LINUX_DISTRO = "almalinux" ]]; then
+        # Install LLD linker. Even if LLVM is not installable from LLVM nightly repos, install
+        # LLD as it avoid out of memory crashes of LD.
+        $INSTALL_CMD lld
     fi
 
     if [ "$CORE_ONLY" == "1" ]; then
@@ -251,7 +243,7 @@ function main {
     fi
 
     # Install misc. packages for build and CI
-    $INSTALL_CMD doxygen git patch p7zip-full python-yaml
+    $INSTALL_CMD doxygen git patch python3-yaml
 
     # Install build packages for Arrow (UCX)
     $INSTALL_CMD autoconf libtool automake
@@ -260,7 +252,7 @@ function main {
     install_gcc
 
     # Download and install recent CMake
-    if [ "$CMAKE_INSTALL_OVERRIDE" == "1" ]; then
+    if [ "$CMAKE_INSTALL_OVERRIDE" = "1" ]; then
         $SCRIPT_DIR/cmake_install.sh
     fi
 
@@ -273,7 +265,9 @@ function main {
     pip3 install codespell pyyaml
 
     # Install cppcheck
-    $SCRIPT_DIR/cppcheck_install.sh
+    if [ "$CPPCHECK_SKIP" = "0" ]; then
+        $SCRIPT_DIR/cppcheck_install.sh
+    fi
 }
 
 main $@
