@@ -18,9 +18,10 @@ INSTALL_DIR=${INSTALL_ROOT_DIR}/${GCC_VERSION}
 FORCE_DOWNLOAD="0"
 SET_AS_DEFAULT="0"
 KEEP_FILES="0"
+SKIP_DEPS_INSTALL="0"
 
 function usage {
-    echo "Usage: $0 [--force-download] [--set-as-default] [--keep-files]"
+    echo "Usage: $0 [--force-download] [--set-as-default] [--keep-files] [--skip-deps-install]"
     echo
     echo "Build and install GCC C/C++ compilers from source."
 }
@@ -31,6 +32,7 @@ function parse_args {
         case $OPT in
             --force-download) shift; FORCE_DOWNLOAD="1";;
             --set-as-default) shift; SET_AS_DEFAULT="1";;
+            --skip-deps-install) shift; SKIP_DEPS_INSTALL="1";;
             --keep-files) shift; KEEP_FILES="1";;
             --help) usage; exit 0;;
             *) echo "Error: unknown argument: $1"; usage; exit 1;;
@@ -39,8 +41,8 @@ function parse_args {
 }
 
 function prepare {
-    # Make sure this script is run as root with sudo.
-    if [[ $EUID -ne 0 ]]; then
+    # Make sure this script is run as root with sudo, if packages are to be installed.
+    if [ "$SKIP_DEPS_INSTALL" = "0" ] && [[ $EUID -ne 0 ]]; then
         echo "Please run this script as root with sudo."
         exit 1
     fi
@@ -51,7 +53,7 @@ function prepare {
     mkdir -p $INSTALL_DIR
 }
 
-function prepare_gcc {
+function prepare_gcc_artifacts {
     GCC_TARBALL=$GCC_VERSION.tar.gz
     cd $SRC_TARGET_DIR
     if [ "$FORCE_DOWNLOAD" = "1" ]; then
@@ -69,6 +71,9 @@ function prepare_gcc {
 }
 
 function install_gcc_deps {
+    if [ "$SKIP_DEPS_INSTALL" = "1" ]; then
+        return
+    fi
     export DEBIAN_FRONTEND=noninteractive
     $UPDATE_CMD
     # Install script dependencies
@@ -83,8 +88,8 @@ function build_gcc {
     fi
     # Configure and build GCC
     mkdir -p $BUILD_DIR && cd $BUILD_DIR
-    ../configure --prefix=$INSTALL_DIR --enable-languages=c,c++ --disable-multilib
-    make -j
+    ../configure --prefix=$INSTALL_DIR --enable-languages=c,c++ --disable-multilib --enable-optimize-stdlib
+    make -j $(nproc)
 }
 
 function install_gcc {
@@ -115,7 +120,7 @@ function main {
     prepare
     echo "About to build and install GCC ($GCC_VERSION)."
     install_gcc_deps
-    prepare_gcc
+    prepare_gcc_artifacts
     build_gcc
     install_gcc
     set_default_gcc
