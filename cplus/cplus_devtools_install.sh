@@ -11,6 +11,8 @@ AUTOREMOVE_CMD=""
 LLVM_VERSION=18
 CMAKE_INSTALL_OVERRIDE="0"
 CPPCHECK_SKIP="0"
+LLVM_SKIP="0"
+CERTS_PATH=""
 
 # Script variables/parameters
 SCRIPT_DIR=$(realpath $(dirname $0))
@@ -21,10 +23,12 @@ LINUX_RELEASE_NAME=""
 function usage {
     echo "Usage: $0 [<option> [<option ... ]]"
     echo "Options:"
+    echo "   --certs-install <path>   : Copy certificates from the specified path and install them"
     echo "   --cmake-install-override : Install CMake and override existing CMake version"
     echo "   --core-only              : Install the basic set of common packages"
     echo "   --cppcheck-skip          : Do not install cppcheck"
     echo "   --help                   : Display this usage information"
+    echo "   --llvm-skip              : Do not install LLVM"
     echo "   --llvm-version <N>       : Set LLVM version to install"
 }
 
@@ -65,7 +69,7 @@ function install_gcc {
 
 function install_testing_packages {
     if ! [ "${LINUX_DISTRO}" = "ubuntu" ]; then
-        echo "Only installing testing packages on Ubuntu (our development distro)."
+        echo "Only installing testing packages on Ubuntu."
         return
     fi
 
@@ -75,12 +79,6 @@ function install_testing_packages {
 
     # Install latest gdb version
     $INSTALL_CMD gdb
-
-    # Install latest available cmake from testing package.
-    # Ubuntu 20.04 ships with cmake 3.16.3 which is too old.
-    if [ "$CMAKE_INSTALL_OVERRIDE" == 0 ]; then
-        $INSTALL_CMD cmake
-    fi
 }
 
 function install_llvm {
@@ -93,15 +91,15 @@ function install_llvm {
 
     # Install compiler-rt for sanitizers and llvm-symbolizer for address sanitizer stack traces.
     # The "|| true" is added to avoid failing on llvm-12, where libclang-rt is not available.
-    $INSTALL_CMD llvm-$LLVM_VERSION libclang-rt-$LLVM_VERSION-dev || true
+    $INSTALL_CMD llvm-$LLVM_VERSION libclang-rt-$LLVM_VERSION-dev libunwind-$LLVM_VERSION || true
     update-alternatives --install /usr/bin/llvm-symbolizer llvm-symbolizer /usr/bin/llvm-symbolizer-$LLVM_VERSION $(( $LLVM_VERSION * 100 )) || true
 
-    if [ "$CORE_ONLY" == "1" ]; then
+    if [ "$CORE_ONLY" = "1" ]; then
         return
     fi
 
     # Install LLVM libc++
-    $INSTALL_CMD libc++-$LLVM_VERSION-dev libc++abi-$LLVM_VERSION-dev libc++1-$LLVM_VERSION libc++abi1-$LLVM_VERSION libunwind-$LLVM_VERSION
+    $INSTALL_CMD libc++-$LLVM_VERSION-dev libc++abi-$LLVM_VERSION-dev
 
     # Install LLVM tools
     $INSTALL_CMD clang-$LLVM_VERSION clang-format-$LLVM_VERSION clang-tidy-$LLVM_VERSION lld-$LLVM_VERSION lldb-$LLVM_VERSION python3-lldb-$LLVM_VERSION
@@ -122,6 +120,14 @@ function parse_args {
                 usage
                 exit 0
                 ;;
+            --certs-install)
+                shift;
+                CERTS_PATH=$1
+                if [ ! -d "$CERTS_PATH" ]; then
+                    echo "$CERTS_PATH is not a folder. Skipping certs installation."
+                    CERTS_PATH=""
+                fi
+                ;;
             --cmake-install-override)
                 CMAKE_INSTALL_OVERRIDE="1"
                 ;;
@@ -134,6 +140,9 @@ function parse_args {
                 ;;
             --cppcheck-skip)
                 CPPCHECK_SKIP="1"
+                ;;
+            --llvm-skip)
+                LLVM_SKIP="1"
                 ;;
             *)  echo "Error: unknown argument: $OPT"
                 usage
@@ -228,11 +237,26 @@ function main {
             p7zip-full
     fi
 
+    if [ "$CERTS_PATH" != "" ]; then
+        echo "Installing certificates..."
+        if [[ $LINUX_DISTRO = "centos" || $LINUX_DISTRO = "almalinux" ]]; then
+            cp $CERTS_PATH/*.crt /etc/pki/ca-trust/source/anchors
+            update-ca-trust
+        else
+            cp -r $CERTS_PATH /usr/local/share/ca-certificates
+            update-ca-certificates
+        fi
+    fi
+
     # Install the LLVM toolchain on Ubuntu/Debian 10.
     # On CentOS, we skip LLVM installation, as nightly LLVM packages are not available for CentOS.
     # When CORE_ONLY is set, only install the LLVM runtime libraries and llvm-symbolizer.
     if [[ $LINUX_DISTRO = "ubuntu" ]] || [[ $LINUX_DISTRO = "debian" && $LINUX_RELEASE_NUM -eq 10 ]]; then
-        install_llvm
+        if [ "$LLVM_SKIP" = "0" ]; then
+            install_llvm
+        else
+            echo "Skipping LLVM installation are requested."
+        fi
     elif [[ $LINUX_DISTRO = "almalinux" ]]; then
         # Install LLD linker. Even if LLVM is not installable from LLVM nightly repos, install
         # LLD as it avoid out of memory crashes of LD.
