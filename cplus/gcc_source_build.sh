@@ -10,7 +10,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(realpath $(dirname $0))"
-GCC_VERSION=${GCC_VERSION:-gcc-10.2.0}
+GCC_VERSION=${GCC_VERSION:-gcc-10.5.0}
 SRC_TARGET_DIR=${SRC_TARGET_DIR:-/usr/local/src}
 BUILD_DIR=${BUILD_DIR:-$SRC_TARGET_DIR/$GCC_VERSION/build}
 INSTALL_ROOT_DIR=${INSTALL_ROOT_DIR:-/opt}
