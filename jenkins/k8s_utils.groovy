@@ -1,8 +1,10 @@
 // Given a pod name string, returns the name of a running pod instance.
 // The output of "kubectl get pods" is filtered to get running pods that match the name.
 // Only one line of output is used - it is assumed no more than one pod instance is running.
+// Extra "grep Running" is needed, as kubectl will also return pods with "Terminating" state,
+// which are still running technically.
 String getPodName(String podNameString) {
-    def podName = sh(script: "kubectl get pods --no-headers --field-selector=status.phase=Running --selector=app.kubernetes.io/name=${podNameString} -o custom-columns=':metadata.name' | head -n 1", returnStdout: true).trim()
+    def podName = sh(script: "kubectl get pods --no-headers --field-selector=status.phase=Running --selector=app.kubernetes.io/name=$podNameString -o wide | grep Running | cut -d' ' -f1 | head -1", returnStdout: true).trim()
     return podName
 }
 
@@ -29,6 +31,27 @@ void runInPod(String podName, String containerName, String runCommand) {
     sh "${scriptPath}"
     // Cleanup
     sh "rm ${scriptPath}"
+}
+
+boolean waitForPods(List<String> podNames) {
+    def repeats = 15
+    def sleepSeconds = 10
+    for (int i = 1; i <= repeats; i++) {
+        def podsStarted = 0
+        for(podName in podNames) {
+            echo "Waiting for " + podName + " (" + i + ") ..."
+            def podInstance = k8sUtils.getPodName(podName)
+            if (podInstance != "") {
+                echo "Pod started: " + podInstance
+                podsStarted++
+            }
+        }
+        if (podsStarted == podNames.size()) {
+            return true
+        }
+        sleep(sleepSeconds)
+    }
+    return false
 }
 
 return this
