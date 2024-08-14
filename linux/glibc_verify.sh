@@ -9,7 +9,7 @@ set -euo pipefail
 function glibc_verify {
     SO_PATH=$1
     GLIBC_VERSION_EXPECTED=$2
-    GLIBC_VERSION=$(strings $SO_PATH | grep GLIBC_ | sort -V | tail -n 1 | sed s/GLIBC_//)
+    GLIBC_VERSION=$(strings $SO_PATH | grep GLIBC_ | sed s/.*@// | sort -V | tail -n 1 | sed s/GLIBC_//)
     GLIBC_IS_AS_EXPECTED=$(echo "$GLIBC_VERSION <= $GLIBC_VERSION_EXPECTED" | bc)
     if [ $GLIBC_IS_AS_EXPECTED -eq 0 ]; then
         echo "GLIBC version of $SO_PATH is newer than expected! Expected $GLIBC_VERSION_EXPECTED, found $GLIBC_VERSION."
