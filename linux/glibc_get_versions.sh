@@ -36,7 +36,7 @@ function detect_glibc_versions {
 
     # Detect the GLIBC and GLIBCXX versions and print them
     GLIBC_VERSION=$(getconf GNU_LIBC_VERSION | sed 's/glibc //')
-    GLIBCXX_VERSION=$(strings $LIBSTDCPP_LIB | grep GLIBCXX_3 | sort -V | tail -1)
+    GLIBCXX_VERSION=$(strings $LIBSTDCPP_LIB | grep GLIBCXX_3 | sed s/^.*GLIBCXX_// | sort -V | tail -1)
 
     echo "GLIBC version: ${GLIBC_VERSION}"
     echo "GLIBCXX version: ${GLIBCXX_VERSION}"
