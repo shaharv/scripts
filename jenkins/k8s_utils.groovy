@@ -54,4 +54,16 @@ boolean waitForPods(List<String> podNames) {
     return false
 }
 
+// Perform a complete cleanup of K8s
+void fullK8sCleanup() {
+    sh "kubectl delete deployments  --all --all-namespaces         || true"
+    sh "kubectl delete services     --all --all-namespaces         || true"
+    sh "kubectl delete pods         --all --all-namespaces --force || true"
+    sh "kubectl delete daemonsets   --all --all-namespaces         || true"
+    sh "kubectl delete statefulsets --all --all-namespaces         || true"
+    sh "kubectl delete jobs         --all --all-namespaces         || true"
+    sh "kubectl delete pvc          --all --all-namespaces         || true"
+    sh "kubectl delete pv           --all                          || true"
+}
+
 return this
