@@ -44,14 +44,14 @@ function detect_glibc_versions {
 }
 
 # Compare two version strings, typically in the format X.Y.Z (e.g. 1.2.3).
-# The comparison is done for each numberic component, starting from the leftmost one.
+# The comparison is done for each numeric component, starting from the leftmost one.
 # While GLIBC version is typically represented as a float number (such as 2.25), GLIBCXX versions
 # might have multiple dots (e.g. 3.4.22).
 function compare_versions() {
     local VERSION_A=$1
     local VERSION_B=$2
 
-    # Split the version strings into arrays with their numberic components, using dot as the seperator
+    # Split the version strings into arrays with their numeric components, using dot as the separator
     IFS='.' read -ra VER_A <<< "$VERSION_A"
     IFS='.' read -ra VER_B <<< "$VERSION_B"
 

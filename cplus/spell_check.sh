@@ -1,23 +1,31 @@
 #!/bin/bash
 
+# Script for finding spelling errors in a git repository using codespell.
+#
+# Usage: spell_check.sh <dir>
+#
+# The above command will check spelling for all files under the <dir> folder, excluding
+# specific file extensions (such as .csv and .json) and folders (such as thirdparty).
+# <dir> is expected to be a git repository or a subfolder of it.
+
 set -euo pipefail
 
-SCRIPT_DIR="$(realpath $(dirname $0))"
-PROJECT_PATH="${PROJECT_PATH:-$(realpath $SCRIPT_DIR/..)}"
+if [ "${1:-}" = "" ]; then
+    echo "Usage: $0 <dir>"
+    exit 0
+fi
+
+ROOT_DIR=$1
 
 # File types to exclude from spell check
-EXCLUDED_FILE_EXTENSIONS=('.excalidraw' '.svg')
+EXCLUDED_FILE_EXTENSIONS=('.bin' '.csv' '.excalidraw' '.json' '.svg')
 
 # List of words to ignore
-IGNORED_WORDS="rela,stoll,upto"
+IGNORED_WORDS="rela,ro,stoll,upto,thirdparty"
 
 function check_executables {
     if [ -z $(which python3) ]; then
         echo "Python is missing. Please install with 'apt install python3-pip'."
-        exit 1
-    fi
-    if [ -z $(which pip) ]; then
-        echo "pip is missing. Please install with 'apt install python3-pip'."
         exit 1
     fi
     if [ -z $(which codespell) ]; then
@@ -27,9 +35,9 @@ function check_executables {
 }
 
 function run_codespell {
-    # Get the base list of git project files to check using "git ls-files".
-    cd "${PROJECT_PATH}"
-    FILES=$(git ls-files --exclude-standard)
+    # Get the base list of files to check using "git ls-files". Exclude the folder "thirdparty".
+    cd "${ROOT_DIR}"
+    FILES=$(git ls-files --exclude-standard | grep -v thirdparty)
 
     # Exclude git submodules and specified file extensions from the list of files.
     GIT_SUBMODULES=$(git config --file .gitmodules --get-regexp path | awk '{ print $2 }' || true)
