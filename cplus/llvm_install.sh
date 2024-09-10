@@ -5,7 +5,7 @@ set -euo pipefail
 function usage {
     echo "Usage: $0 --version <N> [options]"
     echo
-    echo "Where N is the LLVM major version. For example: $0 --version 16"
+    echo "Where N is the LLVM major version. For example: $0 --version 19"
     echo
     echo "Options:"
     echo "--help       Display this usage"
@@ -37,21 +37,28 @@ if [ `id -u` != 0 ] ; then
     exit 1
 fi
 
+export DEBIAN_FRONTEND=noninteractive
+INSTALL_CMD="apt-get install -y --no-install-recommends"
+
 # Update apt repositories
 apt-get update
 
 # Install prerequisite packages
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends lsb-release wget software-properties-common gnupg ca-certificates
+$INSTALL_CMD lsb-release wget software-properties-common gnupg ca-certificates
 
 # Install LLVM packages using the official install script
 TEMP_LLVM_SH=$(mktemp /tmp/llvm-XXXXXX.sh)
 wget https://apt.llvm.org/llvm.sh -O $TEMP_LLVM_SH
 chmod +x $TEMP_LLVM_SH
-$TEMP_LLVM_SH $LLVM_VERSION all
+$TEMP_LLVM_SH $LLVM_VERSION # all
 rm $TEMP_LLVM_SH
+
+# Install extra LLVM packages.
+# The "all" parameter is broken with LLVM 19, so install extra packages manually.
+$INSTALL_CMD clang-tidy-19
 
 echo "Running update-alternatives for LLVM $LLVM_VERSION..."
 SCRIPT_DIR="$(realpath $(dirname $0))"
-$SCRIPT_DIR/llvm_update_alternatives.sh $LLVM_VERSION
+$SCRIPT_DIR/llvm_update_alternatives.sh --llvm-version $LLVM_VERSION
 
 echo "LLVM $LLVM_VERSION was installed successfully."
