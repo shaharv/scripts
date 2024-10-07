@@ -9,14 +9,14 @@ if [ `id -u` != 0 ] ; then
     exit 1
 fi
 
-# Boost 1.75.0
-BOOST_VERSION="1.75.0"
-BOOST_VERSION_NAME="boost_1_75_0"
+# Boost 1.84.0
+BOOST_VERSION="1.84.0"
+BOOST_VERSION_NAME="boost_1_84_0"
 BOOST_TARBALL_NAME="$BOOST_VERSION_NAME.tar.gz"
 
 # Full boost libraries (137MB archive), hosted on sourceforge
 BOOST_TARBALL="https://sourceforge.net/projects/boost/files/boost/$BOOST_VERSION/$BOOST_TARBALL_NAME"
-BOOST_TARBALL_SHA256="aeb26f80e80945e82ee93e5939baebdca47b9dee80a07d3144be1e1a6a66dd6a"
+BOOST_TARBALL_SHA256="a5800f405508f5df8114558ca9855d2640a2de8f0445f051fa1c7c3383045724"
 
 # Arrow slim Boost version (11MB archive), hosted on apache.jfrog.
 # For contents of the trimmed Boost, see:
