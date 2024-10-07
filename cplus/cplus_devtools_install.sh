@@ -12,6 +12,7 @@ LLVM_VERSION=18
 CMAKE_INSTALL_OVERRIDE="0"
 CPPCHECK_SKIP="0"
 LLVM_SKIP="0"
+GCC_SKIP="0"
 CERTS_PATH=""
 
 # Script variables/parameters
@@ -27,6 +28,7 @@ function usage {
     echo "   --cmake-install-override : Install CMake and override existing CMake version"
     echo "   --core-only              : Install the basic set of common packages"
     echo "   --cppcheck-skip          : Do not install cppcheck"
+    echo "   --gcc-skip               : Do not install GCC"
     echo "   --help                   : Display this usage information"
     echo "   --llvm-skip              : Do not install LLVM"
     echo "   --llvm-version <N>       : Set LLVM version to install"
@@ -34,9 +36,10 @@ function usage {
 
 # Install GCC.
 # libstdc++-10-dev (complementing g++-10) is the minimal GNU C++ runtime providing almost full C++20 support.
-# When running on older Debian distributions, don't attempt to install GCC 10,
+# When running on older Ubuntu/Debian distributions, don't attempt to install GCC 10,
 # to avoid upgrading libc6.
 function install_gcc {
+    echo "Installing GCC..."
     if [ "${LINUX_DISTRO}" = "centos" ]; then
         # After installing gcc 10 toolchain on CentOS, enable it with the
         # following command: "scl enable devtoolset-10 bash"
@@ -46,30 +49,20 @@ function install_gcc {
         # After installing gcc 10 toolchain on AlmaLinux, enable it with the
         # following command: "scl enable gcc-toolset-10 bash"
         $INSTALL_CMD gcc-toolset-10-gcc gcc-toolset-10-gcc-c++
+    elif { [ "${LINUX_DISTRO}" = "ubuntu" ] && [[ ${LINUX_RELEASE_NUM_MAJOR} -ge 20 ]]; } ||
+         { [ "${LINUX_DISTRO}" = "debian" ] && [[ ${LINUX_RELEASE_NUM_MAJOR} -ge 11 ]]; }; then
+        # Install gcc 10 apt packages. On Ubuntu >= 20.04 and Debian >= 11, this won't
+        # trigger libc6 and libstdc++6 upgrade.
+        $INSTALL_CMD gcc-10 g++-10
     else
-        # Install the system default GCC compilers first
+        # Install the system default GCC compilers
         $INSTALL_CMD gcc g++
-
-        GCC_10_PACKAGES="gcc-10 g++-10 libstdc++-10-dev"
-        UBUNTU_RELEASE_NUM=${LINUX_RELEASE_NUM%.*} # Remove the fraction part, keeping only major version
-        DEBIAN_RELEASE_NUM=${LINUX_RELEASE_NUM}
-
-        # If Ubuntu/Debian version is recent, install GCC 10 from default repos.
-        # Otherwise, don't attempt to install it, as it may upgrade the glibc version
-        # (libc6 package).
-        if [ "${LINUX_DISTRO}" = "ubuntu" ] && [[ ${UBUNTU_RELEASE_NUM} -ge 20 ]]; then
-            $INSTALL_CMD $GCC_10_PACKAGES
-            return
-        elif [ "${LINUX_DISTRO}" = "debian" ] && [[ ${DEBIAN_RELEASE_NUM} -ge 11 ]]; then
-            $INSTALL_CMD $GCC_10_PACKAGES
-            return
-        fi
     fi
 }
 
 function install_testing_packages {
     if ! [ "${LINUX_DISTRO}" = "ubuntu" ]; then
-        echo "Only installing testing packages on Ubuntu."
+        echo "Skipping testing packages - only installed on Ubuntu."
         return
     fi
 
@@ -141,6 +134,9 @@ function parse_args {
             --cppcheck-skip)
                 CPPCHECK_SKIP="1"
                 ;;
+            --gcc-skip)
+                GCC_SKIP="1"
+                ;;
             --llvm-skip)
                 LLVM_SKIP="1"
                 ;;
@@ -195,7 +191,7 @@ function main {
             yum config-manager --set-enabled powertools
         fi
         $UPDATE_CMD
-    else
+    else # Debian based
         # Install add-apt-repository and basic packages
         $UPDATE_CMD && $INSTALL_CMD software-properties-common gnupg lsb-release
     fi
@@ -209,17 +205,18 @@ function main {
         coreutils \
         curl \
         jq \
-        rsync \
         make \
         net-tools \
         ninja-build \
         parallel \
+        rsync \
         unzip \
         wget
 
     if [[ $LINUX_DISTRO = "centos" || $LINUX_DISTRO = "almalinux" ]]; then
         $INSTALL_CMD \
             binutils-devel \
+            boost-devel \
             netcat \
             numactl-devel \
             openssl-devel \
@@ -230,6 +227,7 @@ function main {
         $INSTALL_CMD \
             binutils-dev \
             netcat-openbsd \
+            libboost-dev \
             libnuma-dev \
             libcurl4-openssl-dev \
             libssl-dev \
@@ -263,36 +261,41 @@ function main {
         $INSTALL_CMD lld
     fi
 
-    if [ "$CORE_ONLY" == "1" ]; then
-        return
-    fi
-
     # Install misc. packages for build and CI
-    $INSTALL_CMD doxygen git patch python3-yaml
+    $INSTALL_CMD git patch python3-yaml
 
     # Install build packages for Arrow (UCX)
     $INSTALL_CMD autoconf libtool automake
 
+    if [ "$CORE_ONLY" == "1" ]; then
+        return
+    fi
+
     # Install GCC compilers
-    install_gcc
+    if [ "$GCC_SKIP" = "0" ]; then
+        install_gcc
+    fi
 
     # Download and install recent CMake
     if [ "$CMAKE_INSTALL_OVERRIDE" = "1" ]; then
         $SCRIPT_DIR/cmake_install.sh
     fi
 
-    # Install testing packages, such as latest GDB.
-    # It is done last since it requires setting up testing repositories.
-    install_testing_packages
-
-    # Install pip3 and extra python packages.
+    # Install pip3 and extra python packages
     $INSTALL_CMD python3-pip
     pip3 install codespell pyyaml
+
+    # Install doxygen
+    $INSTALL_CMD doxygen
 
     # Install cppcheck
     if [ "$CPPCHECK_SKIP" = "0" ]; then
         $SCRIPT_DIR/cppcheck_install.sh
     fi
+
+    # Install testing packages, such as latest GDB.
+    # It is done last since it requires setting up testing repositories.
+    install_testing_packages
 }
 
 main $@
