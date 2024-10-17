@@ -15,13 +15,27 @@ if [ "${1:-}" = "" ]; then
     exit 0
 fi
 
-ROOT_DIR=$1
+SCAN_DIR=$1
 
 # File types to exclude from spell check
 EXCLUDED_FILE_EXTENSIONS=('.bin' '.csv' '.excalidraw' '.json' '.svg')
 
 # List of words to ignore
 IGNORED_WORDS="rela,ro,stoll,upto,thirdparty"
+
+PYTHON_VENV_PATH=${PYTHON_VENV_PATH:-"$PWD/.py-venv"}
+
+function python_venv_setup {
+    # Create venv if doesn't exist
+    if [ ! -d "$PYTHON_VENV_PATH" ]; then
+        echo "Create Python virtual environment: $PYTHON_VENV_PATH"
+        python3 -m venv "$PYTHON_VENV_PATH"
+    fi
+    # Activate the venv and install codespell
+    set +u
+    source "$PYTHON_VENV_PATH/bin/activate"
+    pip3 install codespell
+}
 
 function check_executables {
     if [ -z $(which python3) ]; then
@@ -36,7 +50,7 @@ function check_executables {
 
 function run_codespell {
     # Get the base list of files to check using "git ls-files". Exclude the folder "thirdparty".
-    cd "${ROOT_DIR}"
+    cd "${SCAN_DIR}"
     FILES=$(git ls-files --exclude-standard | grep -v thirdparty)
 
     # Exclude git submodules and specified file extensions from the list of files.
@@ -60,6 +74,7 @@ function run_codespell {
     codespell ${FILTERED_FILES[@]} --ignore-words-list ${IGNORED_WORDS} 2>/dev/null
 }
 
+python_venv_setup
 check_executables
 run_codespell
 echo "Spell check completed successfully."
