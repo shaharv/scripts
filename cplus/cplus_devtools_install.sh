@@ -21,6 +21,8 @@ LINUX_DISTRO=""
 LINUX_RELEASE_NUM=""
 LINUX_RELEASE_NAME=""
 
+MAX_PRIORITY=2147483647
+
 function usage {
     echo "Usage: $0 [<option> [<option ... ]]"
     echo "Options:"
@@ -54,6 +56,7 @@ function install_gcc {
         # Install gcc 10 apt packages. On Ubuntu >= 20.04 and Debian >= 11, this won't
         # trigger libc6 and libstdc++6 upgrade.
         $INSTALL_CMD gcc-10 g++-10
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 $MAX_PRIORITY --slave /usr/bin/g++ g++ /usr/bin/g++-10
     else
         # Install the system default GCC compilers
         $INSTALL_CMD gcc g++
@@ -267,6 +270,14 @@ function main {
     # Install build packages for Arrow (UCX)
     $INSTALL_CMD autoconf libtool automake
 
+    # Install Python3 pip and venv packages
+    $INSTALL_CMD python3-pip
+    if [[ $LINUX_DISTRO = "centos" || $LINUX_DISTRO = "almalinux" ]]; then
+        $INSTALL_CMD python3-virtualenv
+    else
+        $INSTALL_CMD python3-venv
+    fi
+
     if [ "$CORE_ONLY" == "1" ]; then
         return
     fi
@@ -280,10 +291,6 @@ function main {
     if [ "$CMAKE_INSTALL_OVERRIDE" = "1" ]; then
         $SCRIPT_DIR/cmake_install.sh
     fi
-
-    # Install pip3 and extra python packages
-    $INSTALL_CMD python3-pip
-    pip3 install codespell pyyaml
 
     # Install doxygen
     $INSTALL_CMD doxygen
