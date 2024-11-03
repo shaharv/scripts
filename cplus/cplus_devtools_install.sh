@@ -36,6 +36,14 @@ function usage {
     echo "   --llvm-version <N>       : Set LLVM version to install"
 }
 
+function is_centos_based {
+    local DISTRO=$1
+    if [[ $DISTRO = "centos" || $DISTRO = "almalinux" || $DISTRO = "rocky" ]]; then
+        return 0 # return true (exit code 0)
+    fi
+    return 1 # return false (exit code 1)
+}
+
 # Install GCC.
 # libstdc++-10-dev (complementing g++-10) is the minimal GNU C++ runtime providing almost full C++20 support.
 # When running on older Ubuntu/Debian distributions, don't attempt to install GCC 10,
@@ -47,7 +55,7 @@ function install_gcc {
         # following command: "scl enable devtoolset-10 bash"
         $INSTALL_CMD centos-release-scl
         $INSTALL_CMD devtoolset-10-gcc devtoolset-10-gcc-c++
-    elif [ "${LINUX_DISTRO}" = "almalinux" ]; then
+    elif [ "${LINUX_DISTRO}" = "almalinux" ] || [ "${LINUX_DISTRO}" = "rocky" ]; then
         # After installing gcc 10 toolchain on AlmaLinux, enable it with the
         # following command: "scl enable gcc-toolset-10 bash"
         $INSTALL_CMD gcc-toolset-10-gcc gcc-toolset-10-gcc-c++
@@ -188,9 +196,9 @@ function main {
 
     $UPDATE_CMD
 
-    if [[ $LINUX_DISTRO = "centos" || $LINUX_DISTRO = "almalinux" ]]; then
+    if is_centos_based "$LINUX_DISTRO"; then
         $INSTALL_CMD epel-release
-        if [ $LINUX_DISTRO = "almalinux" ]; then
+        if [[ $LINUX_DISTRO = "almalinux" || $LINUX_DISTRO = "rocky" ]]; then
             yum config-manager --set-enabled powertools
         fi
         $UPDATE_CMD
@@ -216,7 +224,7 @@ function main {
         unzip \
         wget
 
-    if [[ $LINUX_DISTRO = "centos" || $LINUX_DISTRO = "almalinux" ]]; then
+    if is_centos_based "$LINUX_DISTRO"; then
         $INSTALL_CMD \
             binutils-devel \
             boost-devel \
@@ -240,7 +248,7 @@ function main {
 
     if [ "$CERTS_PATH" != "" ]; then
         echo "Installing certificates..."
-        if [[ $LINUX_DISTRO = "centos" || $LINUX_DISTRO = "almalinux" ]]; then
+        if is_centos_based "$LINUX_DISTRO"; then
             cp $CERTS_PATH/*.crt /etc/pki/ca-trust/source/anchors
             update-ca-trust
         else
@@ -258,7 +266,7 @@ function main {
         else
             echo "Skipping LLVM installation are requested."
         fi
-    elif [[ $LINUX_DISTRO = "almalinux" ]]; then
+    elif [[ $LINUX_DISTRO = "almalinux" || $LINUX_DISTRO = "rocky" ]]; then
         # Install LLD linker. Even if LLVM is not installable from LLVM nightly repos, install
         # LLD as it avoid out of memory crashes of LD.
         $INSTALL_CMD lld
@@ -272,7 +280,7 @@ function main {
 
     # Install Python3 pip and venv packages
     $INSTALL_CMD python3-pip
-    if [[ $LINUX_DISTRO = "centos" || $LINUX_DISTRO = "almalinux" ]]; then
+    if is_centos_based "$LINUX_DISTRO"; then
         $INSTALL_CMD python3-virtualenv
     else
         $INSTALL_CMD python3-venv
