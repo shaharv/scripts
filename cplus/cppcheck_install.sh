@@ -6,7 +6,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(realpath $(dirname $0))"
-CPPCHECK_GIT_TAG=9c4ed8fa58aed48a8a364ee8193ac9ab50a92602 # 2.14.0
+CPPCHECK_GIT_TAG=88874998d0ed4ddba0f301deb21ea33efc9203ae # 2.15.0
 FORCE=""
 INSTALL_DEPS=1
 CMAKE_ROOT_DIR=${CMAKE_ROOT_DIR:-/usr/local/cmake}
@@ -62,7 +62,7 @@ function install_deps {
     if [ $LINUX_DISTRO = "centos" ]; then
         $INSTALL_CMD centos-release-scl
         $INSTALL_CMD devtoolset-10-gcc devtoolset-10-gcc-c++
-    elif [ $LINUX_DISTRO = "almalinux" ]; then
+    elif [[ $LINUX_DISTRO = "almalinux" || $LINUX_DISTRO = "rocky" ]]; then
         $INSTALL_CMD gcc-toolset-10-gcc gcc-toolset-10-gcc-c++
     else
         $INSTALL_CMD gcc g++
@@ -87,12 +87,13 @@ function install_cppcheck {
     # Configure
     mkdir build && cd build
     CPPCHECK_SRC_DIR=$(realpath ../cppcheck-$CPPCHECK_GIT_TAG)
-    CONFIGURE_COMMAND="$CMAKE_ROOT_DIR/bin/cmake $CPPCHECK_SRC_DIR -DBUILD_GUI=0 -DBUILD_TESTS=0 -DDISABLE_DMAKE=1 -DCMAKE_CXX_COMPILER=g++"
+    CFGDIR="/usr/local/share/Cppcheck"
+    CONFIGURE_COMMAND="$CMAKE_ROOT_DIR/bin/cmake $CPPCHECK_SRC_DIR -DFILESDIR=${CFGDIR} -DBUILD_GUI=0 -DBUILD_TESTS=0 -DDISABLE_DMAKE=1 -DCMAKE_CXX_COMPILER=g++"
     echo $CONFIGURE_COMMAND > $CPPCHECK_TEMP_DIR/configure.sh
     chmod +x $CPPCHECK_TEMP_DIR/configure.sh
     if [ $LINUX_DISTRO = "centos" ]; then
         scl enable devtoolset-10 "bash -c $CPPCHECK_TEMP_DIR/configure.sh"
-    elif [ $LINUX_DISTRO = "almalinux" ]; then
+    elif [[ $LINUX_DISTRO = "almalinux" || $LINUX_DISTRO = "rocky" ]]; then
         scl enable gcc-toolset-10 "bash -c $CPPCHECK_TEMP_DIR/configure.sh"
     else
         $CONFIGURE_COMMAND
@@ -100,7 +101,7 @@ function install_cppcheck {
 
     # Build and install
     make -j
-    make install
+    make install CFGDIR=${CFGDIR}
 
     set +x
 }
