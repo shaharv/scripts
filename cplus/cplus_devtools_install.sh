@@ -215,6 +215,7 @@ function main {
         cmake \
         coreutils \
         curl \
+        gawk \
         jq \
         make \
         net-tools \
@@ -228,21 +229,29 @@ function main {
         $INSTALL_CMD \
             binutils-devel \
             boost-devel \
+            c-ares-devel \
+            gflags-devel \
             netcat \
             numactl-devel \
             openssl-devel \
             p7zip \
+            snappy-devel \
+            utf8proc \
             which \
             zlib-devel
     else
         $INSTALL_CMD \
             binutils-dev \
-            netcat-openbsd \
             libboost-dev \
-            libnuma-dev \
+            libc-ares-dev \
             libcurl4-openssl-dev \
+            libgflags-dev \
+            libnuma-dev \
+            libsnappy-dev \
             libssl-dev \
+            libutf8proc2 \
             libz-dev \
+            netcat-openbsd \
             p7zip-full
     fi
 
