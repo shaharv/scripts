@@ -86,6 +86,9 @@ void fullK8sCleanup() {
     // Remove pod storage related entities
     sh "kubectl delete pvc          --all || true"
     sh "kubectl delete pv           --all || true"
+
+    // Finally, print the status of pods - to make sure there are no remaining ones
+    sh "kubectl get pods            --all-namespaces || true"
 }
 
 // Force kill all docker containers using their pid.
