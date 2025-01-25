@@ -54,8 +54,8 @@ $TEMP_LLVM_SH $LLVM_VERSION # all
 rm $TEMP_LLVM_SH
 
 # Install extra LLVM packages.
-# The "all" parameter is broken with LLVM 19, so install extra packages manually.
-$INSTALL_CMD clang-tidy-19
+# The "all" parameter is broken since LLVM 19, so install extra packages manually.
+$INSTALL_CMD clang-tidy-$LLVM_VERSION clang-format-$LLVM_VERSION
 
 echo "Running update-alternatives for LLVM $LLVM_VERSION..."
 SCRIPT_DIR="$(realpath $(dirname $0))"
