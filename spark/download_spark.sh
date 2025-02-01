@@ -4,7 +4,7 @@ set -euo pipefail
 
 DELIM="================================================================================"
 SPARK_VER=3.5.2
-SPARK_DOWNLOAD_URL=https://dlcdn.apache.org/spark/spark-$SPARK_VER
+SPARK_DOWNLOAD_URL=https://archive.apache.org/dist/spark/spark-$SPARK_VER
 SPARK_RELEASE=spark-$SPARK_VER-bin-hadoop3
 SPARK_ZIP=$SPARK_RELEASE.tgz
 SPARK_ASC_FILE=$SPARK_ZIP.asc
