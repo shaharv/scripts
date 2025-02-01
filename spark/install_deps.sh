@@ -11,7 +11,7 @@ apt install -y unzip bc
 apt install -y openjdk-11-jdk
 
 # Install pyspark
-pip3 install pyspark==3.5.2
+pip3 install pyspark==3.5.4
 
 echo $DELIM
 echo "Installed dependencies."
