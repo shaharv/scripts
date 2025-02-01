@@ -4,6 +4,11 @@ set -euo pipefail
 
 DELIM="================================================================================"
 
+if [ `id -u` != 0 ] ; then
+    echo "Must be run as root! Please add sudo."
+    exit 1
+fi
+
 # Install utilities
 apt install -y unzip bc
 
