@@ -3,9 +3,11 @@
 set -euo pipefail
 
 CLANG_FORMAT_EXE=${CLANG_FORMAT_EXE:-`echo clang-format-18`}
+FILE_EXTENSIONS=(cpp h)
 DIRS=($(pwd))
 METHOD=dry-run
 DIFF_FILE=""
+GIT_DIFF=false
 HAS_FAILED=0
 
 function usage {
@@ -18,6 +20,7 @@ function usage {
     echo "Options:"
     echo "    -m,--method    Specify the desired operation."
     echo "                   Supported options: dry-run, in-place, diff."
+    echo "    -g,--git-diff  Run only on files on the git diff."
     echo "    -h,--help      Show this usage."
 }
 
@@ -26,6 +29,7 @@ function parseArgs {
         case $1 in
             -h|--help) usage; exit 0;;
             -m|--method) METHOD=$2; shift 2;;
+            -g|--git-diff) GIT_DIFF=true; shift;;
             -*) echo "Error: unknown argument: $1"; exit 1;;
             *) DIRS=("$@"); break;;
         esac
@@ -87,20 +91,38 @@ function runFormat() {
             handleSingleFile "$CURR_DIR" "$METHOD"
             continue
         fi
-        for EXTENSION in cpp h; do
-            # Get the list of files under the current folder that match the specified extension,
+
+        if [[ $GIT_DIFF == true ]]; then
+            # Get the list of files in git diff
+            readarray -t FILES <<< "$(git diff ${target_branch} --name-only)"
+        else
+            # Get the list of files under the current folder tree,
             # excluding folders such as thirdparty, CMakeFiles, and build.
-            FILES=$(find $CURR_DIR -name "*.$EXTENSION" \
+            readarray -t FILES <<< "$(find $CURR_DIR -type f \
+                    -not -path "$CURR_DIR/.git/*" \
                     -not -path "$CURR_DIR/thirdparty/*" \
                     -not -path "$CURR_DIR/build*/*" \
                     -not -path "$CURR_DIR/**/build*" \
-                    -not -path "$CURR_DIR/**/CMakeFiles/*")
-            if [[ ! -z $FILES ]]; then
-                for FILE in $FILES; do
-                    handleSingleFile "$FILE" "$METHOD"
-                done
-            fi
+                    -not -path "$CURR_DIR/**/CMakeFiles/*")"
+        fi
+
+        # Filter according to the desired file extensions
+        FILES_FILTERED=()
+        for FILE in "${FILES[@]}"; do
+            for EXTENSION in "${FILE_EXTENSIONS[@]}"; do
+                if [[ "$FILE" =~ \.${EXTENSION}$ ]]; then
+                    FILES_FILTERED+=( "$FILE" )
+                    continue
+                fi
+            done
         done
+
+        # Handle formatting per file
+        if [[ ${#FILES_FILTERED[@]} > 0 ]]; then
+            for FILE in "${FILES_FILTERED[@]}"; do
+                handleSingleFile "$FILE" "$METHOD"
+            done
+        fi
     done
 }
 
