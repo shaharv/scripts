@@ -4,6 +4,7 @@ set -euo pipefail
 
 CLANG_FORMAT_EXE=${CLANG_FORMAT_EXE:-`echo clang-format-18`}
 FILE_EXTENSIONS=(cpp h)
+TARGET_BRANCH=${TARGET_BRANCH:-master}
 DIRS=($(pwd))
 METHOD=dry-run
 DIFF_FILE=""
@@ -86,15 +87,25 @@ function handleSingleFile {
 }
 
 function runFormat() {
-    for CURR_DIR in ${DIRS[@]}; do
+    if ! command -v "$CLANG_FORMAT_EXE" &> /dev/null; then
+        echo "Error: $CLANG_FORMAT_EXE not found."
+        exit 1
+    fi
+
+    for CURR_DIR in "${DIRS[@]}"; do
         if [ -f "$CURR_DIR" ]; then
             handleSingleFile "$CURR_DIR" "$METHOD"
             continue
         fi
 
         if [[ $GIT_DIFF == true ]]; then
+            if ! git rev-parse --is-inside-work-tree &>/dev/null; then
+                echo "Error: used --git-diff but not in a git repository."
+                exit 1
+            fi
+
             # Get the list of files in git diff
-            readarray -t FILES <<< "$(git diff ${target_branch} --name-only)"
+            readarray -t FILES <<< "$(git diff ${TARGET_BRANCH} --name-only)"
         else
             # Get the list of files under the current folder tree,
             # excluding folders such as thirdparty, CMakeFiles, and build.
@@ -122,6 +133,8 @@ function runFormat() {
             for FILE in "${FILES_FILTERED[@]}"; do
                 handleSingleFile "$FILE" "$METHOD"
             done
+        else
+            echo "Warning: no source files found in $CURR_DIR."
         fi
     done
 }
