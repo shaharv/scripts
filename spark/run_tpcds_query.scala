@@ -46,7 +46,11 @@ def runQuery(query_file: String) = {
     println("================================================================================")
 }
 
-createTempViewForTpcdsTables()
+val temp_table_mode = sys.env.getOrElse("TEMP_TABLE_MODE", "")
+if (temp_table_mode != "") {
+    createTempViewForTpcdsTables()
+}
+
 val query_file = sys.env("QUERY_FILE")
 runQuery(query_file)
 

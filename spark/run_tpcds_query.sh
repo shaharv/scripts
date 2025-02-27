@@ -13,8 +13,9 @@ BATCH_MODE=0
 function usage {
     echo "Usage: $0 <path to query.sql> [spark-shell options]"
     echo "Options:"
-    echo "    --batch     Run in batch mode (non-interactive)"
-    echo "    --help      Show this usage"
+    echo "  --batch         Run in batch mode (non-interactive)"
+    echo "  --temp-tables   Load TPC-DS data into temp tables"
+    echo "  --help          Show this usage"
 }
 
 function check_env_vars {
@@ -62,6 +63,9 @@ function parse_args {
             --help)
                 usage
                 exit 0
+                ;;
+            --temp-tables)
+                export TEMP_TABLE_MODE=1
                 ;;
             --batch)
                 export BATCH_MODE=1
