@@ -7,7 +7,7 @@ SPARK_TPCDS_ZIP_NAME=spark-tpcds-datagen-master
 TPCDS_QUERIES_ZIP_NAME=tpcds-master
 TPCDS_GEN_DIR=$(mktemp -d -t tpcds-gen-XXXXXXXX)
 TPCDS_WORK_DIR=${TPCDS_WORK_DIR:-$(mktemp -d -t tpcds-data-XXXXXXXX)}
-TPCDS_DATA_DIR=$TPCDS_WORK_DIR/tpcds-1gb
+TPCDS_DATA_DIR=$TPCDS_WORK_DIR/tpcds-sf1
 SCALE_FACTOR=1
 
 if [ -z ${SPARK_HOME:-} ]; then
