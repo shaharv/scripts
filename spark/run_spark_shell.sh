@@ -50,6 +50,8 @@ ${SPARK_HOME}/bin/spark-shell \
     --conf spark.driver.log.persistToDfs.enabled=true \
     --conf spark.driver.memory="${SPARK_DRIVER_MEMORY}" \
     --conf spark.driver.port=${SPARK_DRIVER_PORT} \
+    --conf spark.driver.extraJavaOptions="-Dio.netty.tryReflectionSetAccessible=true" \
+    --conf spark.executor.extraJavaOptions="-Dio.netty.tryReflectionSetAccessible=true" \
     --conf spark.eventLog.dir=${SPARK_LOG_DIR} \
     --conf spark.eventLog.enabled=true \
     --conf spark.executor.cores=${SPARK_EXECUTOR_CORES} \
