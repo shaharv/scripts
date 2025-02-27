@@ -6,8 +6,8 @@ DELIM="=========================================================================
 SPARK_TPCDS_ZIP_NAME=spark-tpcds-datagen-master
 TPCDS_QUERIES_ZIP_NAME=tpcds-master
 TPCDS_GEN_DIR=$(mktemp -d -t tpcds-gen-XXXXXXXX)
-TPCDS_TEMP_DIR=$(mktemp -d -t tpcds-data-XXXXXXXX)
-TPCDS_DATA_DIR=$TPCDS_TEMP_DIR/tpcds-1gb
+TPCDS_WORK_DIR=${TPCDS_WORK_DIR:-$(mktemp -d -t tpcds-data-XXXXXXXX)}
+TPCDS_DATA_DIR=$TPCDS_WORK_DIR/tpcds-1gb
 SCALE_FACTOR=1
 
 if [ -z ${SPARK_HOME:-} ]; then
@@ -20,10 +20,21 @@ if [ -z ${JAVA_HOME:-} ]; then
     exit 1
 fi
 
+if [ ! -d ${SPARK_HOME:-} ]; then
+    echo "SPARK_HOME folder doesn't exist: $SPARK_HOME."
+    exit 1
+fi
+
+if [ ! -d ${JAVA_HOME:-} ]; then
+    echo "JAVA_HOME folder doesn't exist: $JAVA_HOME."
+    exit 1
+fi
+
 echo $DELIM
 echo "Downloading TPC-DS queries..."
 echo $DELIM
-cd $TPCDS_TEMP_DIR
+mkdir -p $TPCDS_WORK_DIR
+cd $TPCDS_WORK_DIR
 curl https://codeload.github.com/Agirish/tpcds/zip/refs/heads/master --output $TPCDS_QUERIES_ZIP_NAME.zip
 unzip $TPCDS_QUERIES_ZIP_NAME.zip
 rm $TPCDS_QUERIES_ZIP_NAME.zip
@@ -54,9 +65,9 @@ echo "Removing temporary files..."
 rm -r $TPCDS_GEN_DIR
 
 echo $DELIM
-echo "TPC-DS data successfully generated under $TPCDS_TEMP_DIR."
+echo "TPC-DS data successfully generated under $TPCDS_WORK_DIR."
 echo "For further stages set:"
 echo
 echo "export TPCDS_DATA_DIR=$TPCDS_DATA_DIR"
-echo "export TPCDS_QUERIES_DIR=$TPCDS_TEMP_DIR/tpcds-queries"
+echo "export TPCDS_QUERIES_DIR=$TPCDS_WORK_DIR/tpcds-queries"
 echo $DELIM
