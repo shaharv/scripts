@@ -10,6 +10,16 @@
 
 import scala.io.{Source, StdIn}
 
+val tpch_tables = Array(
+    "customer", "lineitem", "nation", "orders", "part", "partsupp", "region", "supplier"
+)
+
+val tpcds_tables = Array(
+    "call_center", "catalog_page", "catalog_returns", "catalog_sales", "customer", "customer_address", "customer_demographics",
+    "date_dim", "household_demographics", "income_band", "inventory", "item", "promotion", "reason", "ship_mode",
+    "store", "store_returns", "store_sales", "time_dim", "warehouse", "web_page", "web_returns", "web_sales", "web_site"
+)
+
 def load_table(db_name: String, table_name: String) = {
     try {
         val data_dir = sys.env("DATA_DIR")
@@ -29,20 +39,12 @@ def load_table(db_name: String, table_name: String) = {
     }
 }
 
-def createTablesForTpch(db_name: String) = {
-    val tpch_tables = Array(
-        "customer", "lineitem", "nation", "orders", "part", "partsupp", "region", "supplier"
-    )
+def createTables(db_name: String, table_names: Array[String]) = {
     spark.sql(s"CREATE DATABASE IF NOT EXISTS $db_name")
-    tpch_tables.par.foreach(table => load_table(db_name, table)) // Run in parallel
+    table_names.par.foreach(table => load_table(db_name, table)) // Run in parallel
 }
 
 def createTablesForTpcds(db_name: String) = {
-    val tpcds_tables = Array(
-        "call_center", "catalog_page", "catalog_returns", "catalog_sales", "customer", "customer_address", "customer_demographics",
-        "date_dim", "household_demographics", "income_band", "inventory", "item", "promotion", "reason", "ship_mode",
-        "store", "store_returns", "store_sales", "time_dim", "warehouse", "web_page", "web_returns", "web_sales", "web_site"
-    )
     spark.sql(s"CREATE DATABASE IF NOT EXISTS $db_name")
     tpcds_tables.par.foreach(table => load_table(db_name, table)) // Run in parallel
 }
@@ -50,11 +52,11 @@ def createTablesForTpcds(db_name: String) = {
 val db_name = sys.env("DB_NAME")
 if (db_name.startsWith("tpch")) {
     println(s"Importing TPC-H tables to the database $db_name.")
-    createTablesForTpch(db_name)
+    createTables(db_name, tpch_tables)
 }
 else if (db_name.startsWith("tpcds")) {
     println(s"Importing TPC-DS tables to the database $db_name.")
-    createTablesForTpcds(db_name)
+    createTables(db_name, tpcds_tables)
 }
 else {
     println(s"Database name $db_name is not prefixed by 'tpch' or 'tpcds'.")
