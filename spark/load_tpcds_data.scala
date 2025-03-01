@@ -1,6 +1,6 @@
 // Script for loading the TPC-DS SF1 tables to Spark.
 // Suggested run command line:
-// . set_spark_env.sh; set +e; ${SPARK_HOME}/bin/spark-shell --master ${MASTER_URL} -i ./load_tpcds_data.scala || true
+// . set_spark_env.sh; set +e; time ${SPARK_HOME}/bin/spark-shell --master ${MASTER_URL} -i ./load_tpcds_data.scala || true
 
 import scala.io.{Source, StdIn}
 
@@ -28,3 +28,8 @@ def createTablesForTpcds() = {
 }
 
 createTablesForTpcds()
+
+// Shutdown and exit
+sc.stop()
+spark.stop()
+System.exit(0)
