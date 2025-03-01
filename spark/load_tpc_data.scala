@@ -11,12 +11,22 @@
 import scala.io.{Source, StdIn}
 
 def load_table(db_name: String, table_name: String) = {
-    val data_dir = sys.env("DATA_DIR")
-    val parquet_file = s"$data_dir/$table_name"
-    println("loading table: " + parquet_file)
-    val table_df = spark.read.parquet(parquet_file)
-    // Write the DataFrame as a permanent table in the database
-    table_df.write.mode("overwrite").saveAsTable(s"$db_name.$table_name")
+    try {
+        val data_dir = sys.env("DATA_DIR")
+        val parquet_file = s"$data_dir/$table_name"
+        println(s"Loading table $table_name from $parquet_file into $db_name")
+
+        val start = System.nanoTime()
+        val table_df = spark.read.parquet(parquet_file)
+        table_df.write.mode("overwrite").saveAsTable(s"$db_name.$table_name")
+        val end = System.nanoTime()
+        val elapsed = (end - start) / 1e9
+        println(f"Successfully loaded $table_name into $db_name in ${elapsed}%.2f seconds")
+    }
+    catch {
+        case e: Exception =>
+            println(s"ERROR loading table $table_name: ${e.getMessage}")
+    }
 }
 
 def createTablesForTpch(db_name: String) = {
