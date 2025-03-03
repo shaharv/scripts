@@ -3,10 +3,10 @@
 // Suggested run commands:
 //
 // export SPARK_HOME=/path/to/spark     # Path to the Spark installation folder
-// export SPARK_DATA_DIR=/tmp           # Path to Spark data folder where spark-warehouse folder will be written
 // export DATA_DIR=/path/to/data        # Path to TPC-H/TPC-DS Parquet files
 // export DB_NAME=name-of-db            # Name of the database, which must be prefixed by "tpch" or "tpcds"
-// . set_spark_env.sh; set +eu; time ${SPARK_HOME}/bin/spark-shell --master ${MASTER_URL} --conf spark.sql.warehouse.dir=${SPARK_DATA_DIR}/spark-warehouse -i ./load_tpc_data.scala || true
+// . set_spark_env.sh; set +eu; time ${SPARK_HOME}/bin/spark-shell --master ${MASTER_URL} \
+//   --conf spark.sql.warehouse.dir=/tmp/spark-warehouse --conf spark.sql.parquet.compression.codec=lz4 -i ./load_tpc_data.scala || true
 
 import scala.io.{Source, StdIn}
 
