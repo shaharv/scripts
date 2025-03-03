@@ -44,11 +44,6 @@ def createTables(db_name: String, table_names: Array[String]) = {
     table_names.par.foreach(table => load_table(db_name, table)) // Run in parallel
 }
 
-def createTablesForTpcds(db_name: String) = {
-    spark.sql(s"CREATE DATABASE IF NOT EXISTS $db_name")
-    tpcds_tables.par.foreach(table => load_table(db_name, table)) // Run in parallel
-}
-
 val db_name = sys.env("DB_NAME")
 if (db_name.startsWith("tpch")) {
     println(s"Importing TPC-H tables to the database $db_name.")
