@@ -30,3 +30,6 @@ export SPARK_WORKER_CORES=$(nproc --all)
 TOTAL_MEM_GB=$(free -g -h -t  | grep Mem: | sed 's/Gi.*//g' | sed 's/Mem: \+//')
 TOTAL_MEM_GB_ROUNDED=${TOTAL_MEM_GB%.*} # remove the fraction
 export SPARK_WORKER_MEMORY="$TOTAL_MEM_GB_ROUNDED""G"
+
+# Driver memory of 4G should be enough for most tasks. Spark default is 1G.
+export SPARK_DRIVER_MEMORY=4G
