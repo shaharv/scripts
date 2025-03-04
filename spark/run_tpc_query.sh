@@ -14,6 +14,7 @@ function usage {
     echo "Usage: $0 <path to query.sql> [spark-shell options]"
     echo "Options:"
     echo "  --batch         Run in batch mode (non-interactive)"
+    echo "  --db-name       Database name in Spark"
     echo "  --help          Show this usage"
 }
 
@@ -23,10 +24,16 @@ function check_env_vars {
         exit 1
     fi
 
-    if [ -z ${DATA_DIR:-} ]; then
-        echo "Please set DATA_DIR."
+    if [ -z ${SPARK_DIRS:-} ]; then
+        echo "Please set SPARK_DIRS. This environment variable sets the location of Spark DB and metastore folders for the scripts."
         exit 1
     fi
+
+    if [ -z ${DB_NAME:-} ]; then
+        echo "Please set --db-name."
+        exit 1
+    fi
+
 }
 
 function parse_args {
@@ -66,6 +73,9 @@ function parse_args {
             --batch)
                 export BATCH_MODE=1
                 ;;
+            --db-name=*)
+                export DB_NAME=${OPT/--db-name=/}
+                ;;
             *)
                 SCRIPT_PARAMS+=($OPT)
                 ;;
@@ -93,7 +103,8 @@ function run_query {
     cat $SQL_FILE
     echo
     echo $DELIM
-    echo "TPC-H/DS data location: $DATA_DIR"
+    echo "Spark DB name: ${DB_NAME}"
+    echo "Spark work dirs location: ${SPARK_DIRS}"
     echo "Full query file path: $(realpath ${SQL_FILE})"
     echo
 
@@ -105,6 +116,6 @@ function run_query {
     $SCRIPT_DIR/run_spark_shell.sh ${SCRIPT_PARAMS[@]} -i run_tpc_query.scala
 }
 
-check_env_vars
 parse_args $@
+check_env_vars
 run_query

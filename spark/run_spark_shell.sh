@@ -27,6 +27,9 @@ SPARK_WORKER_MEMORY_GB=${SPARK_WORKER_MEMORY//G}
 SPARK_EXECUTOR_MEMORY_GB=$(echo "scale=1; x=($SPARK_WORKER_MEMORY_GB-$SPARK_DRIVER_MEMORY_GB)/$SPARK_EXECUTOR_INSTANCES; if(x<1 && x>0) print 0; x" | bc)
 SPARK_EXECUTOR_MEMORY=${SPARK_EXECUTOR_MEMORY_GB%.*}"G" # remove the fraction
 
+# Set the location of Spark metastore_db and spark-warehouse folders
+SPARK_DIRS=${SPARK_DIRS:-/tmp}
+
 echo "Starting spark-shell..."
 echo
 echo "Spark worker memory:   $SPARK_WORKER_MEMORY"
@@ -57,4 +60,6 @@ ${SPARK_HOME}/bin/spark-shell \
     --conf spark.executor.cores=${SPARK_EXECUTOR_CORES} \
     --conf spark.executor.memory=${SPARK_EXECUTOR_MEMORY} \
     --conf spark.history.fs.logDirectory=${SPARK_LOG_DIR} \
+    --conf spark.sql.warehouse.dir=${SPARK_DIRS}/spark-warehouse \
+    --conf "spark.hadoop.javax.jdo.option.ConnectionURL=jdbc:derby:${SPARK_DIRS}/metastore_db;create=true" \
     $@
