@@ -27,6 +27,14 @@ def runQuery(query_file: String) = {
     println("================================================================================")
 }
 
+val db_name = sys.env.getOrElse("DB_NAME", "")
+if (db_name == "") {
+    println(s"Database name $db_name is not set.")
+    System.exit(1)
+}
+
+spark.sql(s"USE $db_name")
+
 val query_file = sys.env("QUERY_FILE")
 runQuery(query_file)
 

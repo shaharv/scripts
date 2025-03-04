@@ -68,6 +68,6 @@ echo $DELIM
 echo "TPC-DS data successfully generated under $TPCDS_WORK_DIR."
 echo "For further stages set:"
 echo
-echo "export TPCDS_DATA_DIR=$TPCDS_DATA_DIR"
+echo "export DATA_DIR=$TPCDS_DATA_DIR"
 echo "export TPCDS_QUERIES_DIR=$TPCDS_WORK_DIR/tpcds-queries"
 echo $DELIM

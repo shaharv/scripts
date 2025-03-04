@@ -23,8 +23,8 @@ function check_env_vars {
         exit 1
     fi
 
-    if [ -z ${TPCDS_DATA_DIR:-} ]; then
-        echo "Please set TPCDS_DATA_DIR."
+    if [ -z ${DATA_DIR:-} ]; then
+        echo "Please set DATA_DIR."
         exit 1
     fi
 }
@@ -93,7 +93,7 @@ function run_query {
     cat $SQL_FILE
     echo
     echo $DELIM
-    echo "TPC-DS data location: $TPCDS_DATA_DIR"
+    echo "TPC-H/DS data location: $DATA_DIR"
     echo "Full query file path: $(realpath ${SQL_FILE})"
     echo
 
