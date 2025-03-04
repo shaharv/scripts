@@ -24,10 +24,11 @@ export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=$SPARK_LOG_DIR"
 # Make sure the number of worker cores is even, to prevent cache performance issues.
 export SPARK_WORKER_CORES=$(nproc --all)
 
-# export SPARK_WORKER_MEMORY for defining memory limits for the worker node.
-# The total max. memory used by the worker includes executors and driver
-# memory (in cluster mode), including heap and off-heap memory of each executor.
-TOTAL_MEM_GB=$(free -g -h -t  | grep Mem: | sed 's/Gi.*//g' | sed 's/Mem: \+//')
+# export SPARK_WORKER_MEMORY for defining the physical memory limit of the worker node.
+# The total max. memory used by the worker includes executors and driver memory
+# (in cluster mode, the driver runs on the worker node), including heap and off-heap
+# memory of each executor.
+TOTAL_MEM_GB=$(free -g -h -t | grep Mem: | sed 's/Gi.*//g' | sed 's/Mem: \+//')
 TOTAL_MEM_GB_ROUNDED=${TOTAL_MEM_GB%.*} # remove the fraction
 export SPARK_WORKER_MEMORY="$TOTAL_MEM_GB_ROUNDED""G"
 
