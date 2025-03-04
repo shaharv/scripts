@@ -1,24 +1,5 @@
 import scala.io.{Source, StdIn}
 
-def load_table(table_name: String) = {
-    val data_dir = sys.env("TPCDS_DATA_DIR")
-    val parquet_file = data_dir + "/" + table_name
-    println("loading table: " + parquet_file)
-    val table_df = spark.read.parquet(parquet_file)
-    table_df.createTempView(table_name)
-}
-
-def createTempViewForTpcdsTables() = {
-    val tpcds_tables = Array(
-        "call_center", "catalog_page", "catalog_returns", "catalog_sales", "customer", "customer_address", "customer_demographics",
-        "date_dim", "household_demographics", "income_band", "inventory", "item", "promotion", "reason", "ship_mode",
-        "store", "store_returns", "store_sales", "time_dim", "warehouse", "web_page", "web_returns", "web_sales", "web_site")
-
-    for (t <- tpcds_tables) {
-        load_table(t)
-    }
-}
-
 def runQuery(query_file: String) = {
     val sql_query = Source.fromFile(query_file).getLines.mkString
 
@@ -44,11 +25,6 @@ def runQuery(query_file: String) = {
     println("\n================================================================================")
     print("Query duration: " + query_duration_rounded + " seconds\n")
     println("================================================================================")
-}
-
-val temp_table_mode = sys.env.getOrElse("TEMP_TABLE_MODE", "")
-if (temp_table_mode != "") {
-    createTempViewForTpcdsTables()
 }
 
 val query_file = sys.env("QUERY_FILE")
