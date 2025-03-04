@@ -102,7 +102,7 @@ function run_query {
     fi
 
     # Run spark-shell
-    $SCRIPT_DIR/run_spark_shell.sh ${SCRIPT_PARAMS[@]} -i run_tpcds_query.scala
+    $SCRIPT_DIR/run_spark_shell.sh ${SCRIPT_PARAMS[@]} -i run_tpc_query.scala
 }
 
 check_env_vars
