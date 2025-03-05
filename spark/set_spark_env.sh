@@ -14,10 +14,12 @@ MASTER_URL="spark://${HOSTNAME}:${SPARK_MASTER_PORT}"
 export SPARK_LOCAL_HOSTNAME=${HOSTNAME}
 
 # Set Spark log and work dirs
-SPARK_LOG_DIR=/tmp/spark-logs
+SPARK_LOG_DIR=${SPARK_LOG_DIR:-/tmp/spark-logs}
 mkdir -p $SPARK_LOG_DIR
-export SPARK_LOCAL_DIRS=/tmp/spark-temp
-export SPARK_WORKER_DIR=/tmp/spark-worker
+
+SPARK_DIRS=${SPARK_DIRS:-/tmp/spark}
+export SPARK_LOCAL_DIRS=${SPARK_DIRS}/temp
+export SPARK_WORKER_DIR=${SPARK_DIRS}/worker
 export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=$SPARK_LOG_DIR"
 
 # Set the number of cores for the worker and driver.
