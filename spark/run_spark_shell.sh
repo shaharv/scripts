@@ -62,4 +62,7 @@ ${SPARK_HOME}/bin/spark-shell \
     --conf spark.history.fs.logDirectory=${SPARK_LOG_DIR} \
     --conf spark.sql.warehouse.dir=${SPARK_DIRS}/spark-warehouse \
     --conf "spark.hadoop.javax.jdo.option.ConnectionURL=jdbc:derby:${SPARK_DIRS}/metastore_db;create=true" \
+    --conf spark.shuffle.manager=org.apache.spark.shuffle.sort.ColumnarShuffleManager \
+    --conf spark.sql.catalogImplementation=hive \
+    --conf spark.sql.hive.metastorePartitionPruning=true \
     $@
