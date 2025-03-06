@@ -41,6 +41,18 @@ echo "Spark executor memory: $SPARK_EXECUTOR_MEMORY"
 echo "Spark executor cores:  $SPARK_EXECUTOR_CORES"
 echo
 
+GLUTEN_OPTIONS=" \
+    --conf spark.plugins=org.apache.gluten.GlutenPlugin \
+    --conf spark.gluten.sql.debug=true \
+    --conf spark.memory.offHeap.enabled=true \
+    --conf spark.memory.offHeap.size=${SPARK_EXECUTOR_MEMORY} \
+    --conf spark.shuffle.manager=org.apache.spark.shuffle.sort.ColumnarShuffleManager \
+    --jars $SPARK_HOME/jars/gluten-velox-bundle-spark3.5_2.12-centos_7_x86_64-1.3.0.jar"
+
+if [ "$DISABLE_GLUTEN" = "1" ]; then
+    GLUTEN_OPTIONS=""
+fi
+
 set -x
 
 ${SPARK_HOME}/bin/spark-shell \
@@ -49,25 +61,20 @@ ${SPARK_HOME}/bin/spark-shell \
     --conf spark.cores.max=${SPARK_CORES_MAX} \
     --conf spark.deploy.mode=client \
     --conf spark.driver.cores=${SPARK_DRIVER_CORES} \
+    --conf spark.driver.extraJavaOptions="-Dio.netty.tryReflectionSetAccessible=true" \
     --conf spark.driver.log.dfsDir=${SPARK_LOG_DIR} \
     --conf spark.driver.log.persistToDfs.enabled=true \
     --conf spark.driver.memory="${SPARK_DRIVER_MEMORY}" \
     --conf spark.driver.port=${SPARK_DRIVER_PORT} \
-    --conf spark.driver.extraJavaOptions="-Dio.netty.tryReflectionSetAccessible=true" \
-    --conf spark.executor.extraJavaOptions="-Dio.netty.tryReflectionSetAccessible=true" \
     --conf spark.eventLog.dir=${SPARK_LOG_DIR} \
     --conf spark.eventLog.enabled=true \
     --conf spark.executor.cores=${SPARK_EXECUTOR_CORES} \
+    --conf spark.executor.extraJavaOptions="-Dio.netty.tryReflectionSetAccessible=true" \
     --conf spark.executor.memory=${SPARK_EXECUTOR_MEMORY} \
+    --conf spark.hadoop.javax.jdo.option.ConnectionURL="jdbc:derby:${SPARK_DIRS}/metastore_db;create=true" \
     --conf spark.history.fs.logDirectory=${SPARK_LOG_DIR} \
-    --conf spark.sql.warehouse.dir=${SPARK_DIRS}/spark-warehouse \
-    --conf "spark.hadoop.javax.jdo.option.ConnectionURL=jdbc:derby:${SPARK_DIRS}/metastore_db;create=true" \
-    --conf spark.shuffle.manager=org.apache.spark.shuffle.sort.ColumnarShuffleManager \
     --conf spark.sql.catalogImplementation=hive \
     --conf spark.sql.hive.metastorePartitionPruning=true \
-    --conf spark.plugins=org.apache.gluten.GlutenPlugin \
-    --conf spark.gluten.sql.debug=true \
-    --conf spark.memory.offHeap.enabled=true \
-    --conf spark.memory.offHeap.size=${SPARK_EXECUTOR_MEMORY} \
-    --jars $SPARK_HOME/jars/gluten-velox-bundle-spark3.5_2.12-centos_7_x86_64-1.3.0.jar \
+    --conf spark.sql.warehouse.dir=${SPARK_DIRS}/spark-warehouse \
+    ${GLUTEN_OPTIONS} \
     $@
