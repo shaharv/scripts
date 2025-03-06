@@ -65,4 +65,9 @@ ${SPARK_HOME}/bin/spark-shell \
     --conf spark.shuffle.manager=org.apache.spark.shuffle.sort.ColumnarShuffleManager \
     --conf spark.sql.catalogImplementation=hive \
     --conf spark.sql.hive.metastorePartitionPruning=true \
+    --conf spark.plugins=org.apache.gluten.GlutenPlugin \
+    --conf spark.gluten.sql.debug=true \
+    --conf spark.memory.offHeap.enabled=true \
+    --conf spark.memory.offHeap.size=${SPARK_EXECUTOR_MEMORY} \
+    --jars $SPARK_HOME/jars/gluten-velox-bundle-spark3.5_2.12-centos_7_x86_64-1.3.0.jar \
     $@
