@@ -3,40 +3,53 @@
 set -euo pipefail
 
 DELIM="================================================================================"
-SPARK_VER=3.5.4
-SPARK_DOWNLOAD_URL=https://archive.apache.org/dist/spark/spark-$SPARK_VER
+SPARK_VER=${SPARK_VER:-3.5.2}
+SPARK_BASE_URL=https://archive.apache.org/dist/spark/spark-$SPARK_VER
 SPARK_RELEASE=spark-$SPARK_VER-bin-hadoop3
-SPARK_ZIP=$SPARK_RELEASE.tgz
-SPARK_ASC_FILE=$SPARK_ZIP.asc
-SPARK_SHA_FILE=$SPARK_ZIP.sha512
+SPARK_TARBALL=$SPARK_RELEASE.tgz
+SPARK_ASC_FILE=$SPARK_TARBALL.asc
+SPARK_SHA_FILE=$SPARK_TARBALL.sha512
 
-# Download spark into a new folder
-echo $DELIM
-echo "Downloading Spark $SPARK_VER..."
-echo $DELIM
 TEMP_DIR=$(mktemp -d -t spark-XXXXXXXX)
 cd $TEMP_DIR
-wget $SPARK_DOWNLOAD_URL/$SPARK_ASC_FILE
-wget $SPARK_DOWNLOAD_URL/$SPARK_SHA_FILE
-wget $SPARK_DOWNLOAD_URL/$SPARK_ZIP
 
-# Verify the downloaded zip signature and hash based on instructions in:
-# - https://www.apache.org/dyn/closer.lua/spark/spark-3.5.4/spark-3.5.4-bin-hadoop3.tgz
-# - https://www.apache.org/info/verification.html
-echo $DELIM
-echo "Verifying downloaded zip..."
-echo $DELIM
-wget https://downloads.apache.org/spark/KEYS
-gpg --import KEYS
-gpg --verify $SPARK_ASC_FILE $SPARK_ZIP
-sha512sum -c $SPARK_SHA_FILE
-echo "sha512 checksum verified."
+function import_apache_keys {
+    wget https://downloads.apache.org/spark/KEYS
+    gpg --import KEYS
+}
 
-# Extract Spark
-echo $DELIM
-echo "Extracting Spark..."
-echo $DELIM
-tar xvf $SPARK_ZIP
+function download_apache_component {
+    local baseUrl=$1
+    local tarFileName=$2
+    local componentName=$3
+
+    # Download the tarball and signature files
+    echo $DELIM
+    echo "Downloading $componentName..."
+    echo $DELIM
+    wget $baseUrl/$tarFileName.asc
+    wget $baseUrl/$tarFileName.sha512
+    wget $baseUrl/$tarFileName
+
+    # Verify the downloaded tarball signature and hash based on instructions in:
+    # - https://www.apache.org/dyn/closer.lua/spark/spark-3.5.2/spark-3.5.2-bin-hadoop3.tgz
+    # - https://www.apache.org/info/verification.html
+    echo $DELIM
+    echo "Verifying $tarFileName..."
+    echo $DELIM
+    gpg --verify $tarFileName.asc $tarFileName
+    sha512sum -c $tarFileName.sha512
+    echo "sha512 checksum verified."
+
+    # Extract the tarball
+    echo $DELIM
+    echo "Extracting Spark..."
+    echo $DELIM
+    tar xvf $tarFileName
+}
+
+import_apache_keys
+download_apache_component $SPARK_BASE_URL $SPARK_TARBALL Spark
 
 # Finish
 echo $DELIM
