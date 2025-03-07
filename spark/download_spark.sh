@@ -3,25 +3,29 @@
 set -euo pipefail
 
 DELIM="================================================================================"
-SPARK_VER=${SPARK_VER:-3.5.2}
-SPARK_BASE_URL=https://archive.apache.org/dist/spark/spark-$SPARK_VER
-SPARK_RELEASE=spark-$SPARK_VER-bin-hadoop3
+SPARK_VERSION=${SPARK_VERSION:-3.5.2}
+SPARK_MAJOR_VERSION=${SPARK_VERSION%.*} # Remove the 3rd digit
+SPARK_MAJOR_VERSION_NO_DOTS=${SPARK_MAJOR_VERSION//./} # Remove the dots
+SPARK_BASE_URL=https://archive.apache.org/dist/spark/spark-$SPARK_VERSION
+SPARK_RELEASE=spark-$SPARK_VERSION-bin-hadoop3
 SPARK_TARBALL=$SPARK_RELEASE.tgz
-SPARK_ASC_FILE=$SPARK_TARBALL.asc
-SPARK_SHA_FILE=$SPARK_TARBALL.sha512
+GLUTEN_VERSION=${GLUTEN_VERSION:-1.3.0}
+GLUTEN_BASE_URL=https://dlcdn.apache.org/incubator/gluten/${GLUTEN_VERSION}-incubating
+GLUTEN_TARBALL=apache-gluten-${GLUTEN_VERSION}-incubating-bin-spark${SPARK_MAJOR_VERSION_NO_DOTS}.tar.gz
+GLUTEN_JAR=gluten-velox-bundle-spark${SPARK_MAJOR_VERSION}_2.12-centos_7_x86_64-${GLUTEN_VERSION}.jar
 
 TEMP_DIR=$(mktemp -d -t spark-XXXXXXXX)
 cd $TEMP_DIR
-
-function import_apache_keys {
-    wget https://downloads.apache.org/spark/KEYS
-    gpg --import KEYS
-}
 
 function download_apache_component {
     local baseUrl=$1
     local tarFileName=$2
     local componentName=$3
+    local keysUrlPath=$4
+
+    # Import verification keys
+    wget https://downloads.apache.org/$keysUrlPath/KEYS
+    gpg --import KEYS
 
     # Download the tarball and signature files
     echo $DELIM
@@ -48,11 +52,15 @@ function download_apache_component {
     tar xvf $tarFileName
 }
 
-import_apache_keys
-download_apache_component $SPARK_BASE_URL $SPARK_TARBALL Spark
+download_apache_component $GLUTEN_BASE_URL $GLUTEN_TARBALL Gluten "incubator/gluten"
+download_apache_component $SPARK_BASE_URL $SPARK_TARBALL Spark "spark"
+
+# Move Gluten jar to Spark's jar folder
+mv $TEMP_DIR/$GLUTEN_JAR $TEMP_DIR/$SPARK_RELEASE/jars
 
 # Finish
 echo $DELIM
-echo "Spark $SPARK_VER was extracted to $TEMP_DIR/$SPARK_RELEASE."
+echo "Spark $SPARK_VERSION was extracted to $TEMP_DIR/$SPARK_RELEASE."
 echo "For using Spark in this location: export SPARK_HOME=$TEMP_DIR/$SPARK_RELEASE"
+echo "Gluten jar location: $TEMP_DIR/$SPARK_RELEASE/$GLUTEN_JAR"
 echo $DELIM
