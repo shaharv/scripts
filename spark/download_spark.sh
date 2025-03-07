@@ -62,5 +62,5 @@ mv $TEMP_DIR/$GLUTEN_JAR $TEMP_DIR/$SPARK_RELEASE/jars
 echo $DELIM
 echo "Spark $SPARK_VERSION was extracted to $TEMP_DIR/$SPARK_RELEASE."
 echo "For using Spark in this location: export SPARK_HOME=$TEMP_DIR/$SPARK_RELEASE"
-echo "Gluten jar location: $TEMP_DIR/$SPARK_RELEASE/$GLUTEN_JAR"
+echo "Gluten jar location: $TEMP_DIR/$SPARK_RELEASE/jars/$GLUTEN_JAR"
 echo $DELIM
