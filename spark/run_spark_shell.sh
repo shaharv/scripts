@@ -1,11 +1,13 @@
 #!/bin/bash
 
-set -eu
+set -euo pipefail
 
 # Set Spark variables
 SCRIPT_NAME=$(readlink -f $0)
 SCRIPT_DIR="$(dirname $SCRIPT_NAME)"
 . $SCRIPT_DIR/set_spark_env.sh
+
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}
 
 # Set the number of cores for each executor and the driver application.
 # Make sure the number of executor cores is even, to prevent cache performance issues.
@@ -24,8 +26,10 @@ SPARK_CORES_MAX=$SPARK_WORKER_CORES
 SPARK_DRIVER_MEMORY=1G
 SPARK_DRIVER_MEMORY_GB=${SPARK_DRIVER_MEMORY//G}
 SPARK_WORKER_MEMORY_GB=${SPARK_WORKER_MEMORY//G}
-SPARK_EXECUTOR_MEMORY_GB=$(echo "scale=1; x=($SPARK_WORKER_MEMORY_GB-$SPARK_DRIVER_MEMORY_GB)/$SPARK_EXECUTOR_INSTANCES; if(x<1 && x>0) print 0; x" | bc)
-SPARK_EXECUTOR_MEMORY=${SPARK_EXECUTOR_MEMORY_GB%.*}"G" # remove the fraction
+SPARK_EXECUTOR_MEMORY_GB=$(echo "scale=0; x=($SPARK_WORKER_MEMORY_GB-$SPARK_DRIVER_MEMORY_GB)/$SPARK_EXECUTOR_INSTANCES; if(x<1 && x>0) print 0; x" | bc)
+SPARK_EXECUTOR_MEMORY=${SPARK_EXECUTOR_MEMORY_GB}"G"
+SPARK_EXECUTOR_MEMORY_OVERHEAD=$(echo "scale=0; 1000*$SPARK_EXECUTOR_MEMORY_GB/2" | bc)
+SPARK_EXECUTOR_MEMORY_OVERHEAD_MB=${SPARK_EXECUTOR_MEMORY_OVERHEAD}"M"
 
 # Set the location of Spark metastore_db and spark-warehouse folders
 SPARK_DIRS=${SPARK_DIRS:-/tmp}
@@ -66,11 +70,15 @@ ${SPARK_HOME}/bin/spark-shell \
     --conf spark.driver.log.persistToDfs.enabled=true \
     --conf spark.driver.memory="${SPARK_DRIVER_MEMORY}" \
     --conf spark.driver.port=${SPARK_DRIVER_PORT} \
+    --conf spark.driverEnv.LD_LIBRARY_PATH=${LD_LIBRARY_PATH} \
     --conf spark.eventLog.dir=${SPARK_LOG_DIR} \
     --conf spark.eventLog.enabled=true \
     --conf spark.executor.cores=${SPARK_EXECUTOR_CORES} \
     --conf spark.executor.extraJavaOptions="-Dio.netty.tryReflectionSetAccessible=true" \
+    --conf spark.executor.instances=${SPARK_EXECUTOR_INSTANCES} \
     --conf spark.executor.memory=${SPARK_EXECUTOR_MEMORY} \
+    --conf spark.executor.memoryOverhead=${SPARK_EXECUTOR_MEMORY_OVERHEAD_MB} \
+    --conf spark.executorEnv.LD_LIBRARY_PATH=${LD_LIBRARY_PATH} \
     --conf spark.hadoop.javax.jdo.option.ConnectionURL="jdbc:derby:${SPARK_DIRS}/metastore_db;create=true" \
     --conf spark.history.fs.logDirectory=${SPARK_LOG_DIR} \
     --conf spark.sql.catalogImplementation=hive \
