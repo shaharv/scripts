@@ -49,7 +49,7 @@ GLUTEN_OPTIONS=" \
     --conf spark.shuffle.manager=org.apache.spark.shuffle.sort.ColumnarShuffleManager \
     --jars $SPARK_HOME/jars/gluten-velox-bundle-spark3.5_2.12-centos_7_x86_64-1.3.0.jar"
 
-if [ "$DISABLE_GLUTEN" = "1" ]; then
+if [ "${DISABLE_GLUTEN:-}" = "1" ]; then
     GLUTEN_OPTIONS=""
 fi
 
@@ -75,6 +75,10 @@ ${SPARK_HOME}/bin/spark-shell \
     --conf spark.history.fs.logDirectory=${SPARK_LOG_DIR} \
     --conf spark.sql.catalogImplementation=hive \
     --conf spark.sql.hive.metastorePartitionPruning=true \
+    --conf spark.sql.shuffle.partitions=480 \
+    --conf spark.sql.sources.parallelPartitionDiscovery.threshold=120 \
+    --conf spark.sql.sources.parallelPartitionDiscovery.parallelism=120 \
     --conf spark.sql.warehouse.dir=${SPARK_DIRS}/spark-warehouse \
     ${GLUTEN_OPTIONS} \
+    ${SPARK_EXTRA_OPTIONS:-} \
     $@
