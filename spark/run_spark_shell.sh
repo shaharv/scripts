@@ -45,13 +45,15 @@ echo "Spark executor memory: $SPARK_EXECUTOR_MEMORY"
 echo "Spark executor cores:  $SPARK_EXECUTOR_CORES"
 echo
 
+GLUTEN_JAR=${GLUTEN_JAR:-gluten-velox-bundle-spark3.5_2.12-centos_7_x86_64-1.3.0.jar}
+
 GLUTEN_OPTIONS=" \
     --conf spark.plugins=org.apache.gluten.GlutenPlugin \
     --conf spark.gluten.sql.debug=true \
     --conf spark.memory.offHeap.enabled=true \
     --conf spark.memory.offHeap.size=${SPARK_EXECUTOR_MEMORY} \
     --conf spark.shuffle.manager=org.apache.spark.shuffle.sort.ColumnarShuffleManager \
-    --jars $SPARK_HOME/jars/gluten-velox-bundle-spark3.5_2.12-centos_7_x86_64-1.3.0.jar"
+    --jars $SPARK_HOME/jars/$GLUTEN_JAR"
 
 if [ "${DISABLE_GLUTEN:-}" = "1" ]; then
     GLUTEN_OPTIONS=""
