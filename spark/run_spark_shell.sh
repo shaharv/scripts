@@ -13,8 +13,8 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}
 # Make sure the number of executor cores is even, to prevent cache performance issues.
 # Example calculation: if SPARK_WORKER_CORES is 12, and we set 2 cores for driver and
 # 2 cores for each executor, then we have 5 executors (12 = 5 x 2 + 2).
-SPARK_DRIVER_CORES=2
-SPARK_EXECUTOR_CORES=2
+SPARK_DRIVER_CORES=${SPARK_DRIVER_CORES:-2}
+SPARK_EXECUTOR_CORES=${SPARK_EXECUTOR_CORES:-2}
 let SPARK_TOTAL_EXECUTOR_CORES=($SPARK_WORKER_CORES-$SPARK_DRIVER_CORES)
 SPARK_EXECUTOR_INSTANCES=$(bc <<< $SPARK_TOTAL_EXECUTOR_CORES/$SPARK_EXECUTOR_CORES)
 
@@ -23,13 +23,13 @@ SPARK_EXECUTOR_INSTANCES=$(bc <<< $SPARK_TOTAL_EXECUTOR_CORES/$SPARK_EXECUTOR_CO
 SPARK_CORES_MAX=$SPARK_WORKER_CORES
 
 # Set the same amount of memory per executor core.
-SPARK_DRIVER_MEMORY=1G
-SPARK_DRIVER_MEMORY_GB=${SPARK_DRIVER_MEMORY//G}
+SPARK_DRIVER_MEMORY_GB=${SPARK_DRIVER_MEMORY_GB:-}
+SPARK_DRIVER_MEMORY=${SPARK_DRIVER_MEMORY_GB}"G"
 SPARK_WORKER_MEMORY_GB=${SPARK_WORKER_MEMORY//G}
-SPARK_EXECUTOR_MEMORY_GB=$(echo "scale=0; x=($SPARK_WORKER_MEMORY_GB-$SPARK_DRIVER_MEMORY_GB)/$SPARK_EXECUTOR_INSTANCES; if(x<1 && x>0) print 0; x" | bc)
+SPARK_EXECUTOR_MEMORY_GB=${SPARK_EXECUTOR_MEMORY_GB:-$(echo "scale=0; x=($SPARK_WORKER_MEMORY_GB-$SPARK_DRIVER_MEMORY_GB)/$SPARK_EXECUTOR_INSTANCES; if(x<1 && x>0) print 0; x" | bc)}
 SPARK_EXECUTOR_MEMORY=${SPARK_EXECUTOR_MEMORY_GB}"G"
-SPARK_EXECUTOR_MEMORY_OVERHEAD=$(echo "scale=0; 1000*$SPARK_EXECUTOR_MEMORY_GB/2" | bc)
-SPARK_EXECUTOR_MEMORY_OVERHEAD_MB=${SPARK_EXECUTOR_MEMORY_OVERHEAD}"M"
+SPARK_EXECUTOR_MEMORY_OVERHEAD_GB=${SPARK_EXECUTOR_MEMORY_OVERHEAD_GB:-1}
+SPARK_EXECUTOR_MEMORY_OVERHEAD=${SPARK_EXECUTOR_MEMORY_OVERHEAD_GB}"G"
 
 # Set the location of Spark metastore_db and spark-warehouse folders
 SPARK_DIRS=${SPARK_DIRS:-/tmp}
@@ -79,7 +79,7 @@ ${SPARK_HOME}/bin/spark-shell \
     --conf spark.executor.extraJavaOptions="-Dio.netty.tryReflectionSetAccessible=true" \
     --conf spark.executor.instances=${SPARK_EXECUTOR_INSTANCES} \
     --conf spark.executor.memory=${SPARK_EXECUTOR_MEMORY} \
-    --conf spark.executor.memoryOverhead=${SPARK_EXECUTOR_MEMORY_OVERHEAD_MB} \
+    --conf spark.executor.memoryOverhead=${SPARK_EXECUTOR_MEMORY_OVERHEAD} \
     --conf spark.executorEnv.LD_LIBRARY_PATH=${LD_LIBRARY_PATH} \
     --conf spark.hadoop.javax.jdo.option.ConnectionURL="jdbc:derby:${SPARK_DIRS}/metastore_db;create=true" \
     --conf spark.history.fs.logDirectory=${SPARK_LOG_DIR} \
