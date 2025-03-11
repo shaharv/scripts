@@ -42,6 +42,9 @@ echo "Spark executor memory (GB): $SPARK_EXECUTOR_MEMORY_GB"
 echo "Spark executor cores:       $SPARK_EXECUTOR_CORES"
 echo
 
+SPARK_METASTORE_OPTIONS=${SPARK_METASTORE_OPTIONS:-" \
+    --conf spark.hadoop.javax.jdo.option.ConnectionURL=jdbc:derby:${SPARK_DIRS}/metastore_db;create=true"}
+
 GLUTEN_JAR=${GLUTEN_JAR:-gluten-velox-bundle-spark3.5_2.12-centos_7_x86_64-1.3.0.jar}
 
 GLUTEN_OPTIONS=" \
@@ -78,7 +81,6 @@ ${SPARK_HOME}/bin/spark-shell \
     --conf spark.executor.memory="${SPARK_EXECUTOR_MEMORY_GB}G" \
     --conf spark.executor.memoryOverhead="${SPARK_EXECUTOR_MEMORY_OVERHEAD_GB}G" \
     --conf spark.executorEnv.LD_LIBRARY_PATH=${LD_LIBRARY_PATH} \
-    --conf spark.hadoop.javax.jdo.option.ConnectionURL="jdbc:derby:${SPARK_DIRS}/metastore_db;create=true" \
     --conf spark.history.fs.logDirectory=${SPARK_LOG_DIR} \
     --conf spark.sql.catalogImplementation=hive \
     --conf spark.sql.hive.metastorePartitionPruning=true \
@@ -87,5 +89,6 @@ ${SPARK_HOME}/bin/spark-shell \
     --conf spark.sql.sources.parallelPartitionDiscovery.parallelism=120 \
     --conf spark.sql.warehouse.dir=${SPARK_DIRS}/spark-warehouse \
     ${GLUTEN_OPTIONS} \
+    ${SPARK_METASTORE_OPTIONS:-} \
     ${SPARK_EXTRA_OPTIONS:-} \
     $@
