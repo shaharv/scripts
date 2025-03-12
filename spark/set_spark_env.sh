@@ -123,3 +123,18 @@ SPARK_OPTIONS=${SPARK_OPTIONS:-" \
     --conf spark.sql.sources.parallelPartitionDiscovery.threshold=120 \
     --conf spark.sql.sources.parallelPartitionDiscovery.parallelism=120 \
     --conf spark.sql.warehouse.dir=${SPARK_DIRS}/spark-warehouse"}
+
+# --------------------------------------------------------------------------------
+# Print Spark cores and memory values
+# --------------------------------------------------------------------------------
+
+echo "Spark default values:"
+echo
+echo "Spark worker memory (GB):   $SPARK_WORKER_MEMORY_GB"
+echo "Spark worker cores:         $SPARK_WORKER_CORES"
+echo "Spark driver memory (GB):   $SPARK_DRIVER_MEMORY_GB"
+echo "Spark driver cores:         $SPARK_DRIVER_CORES"
+echo "Spark executors:            $SPARK_EXECUTOR_INSTANCES"
+echo "Spark executor memory (GB): $SPARK_EXECUTOR_MEMORY_GB"
+echo "Spark executor cores:       $SPARK_EXECUTOR_CORES"
+echo
