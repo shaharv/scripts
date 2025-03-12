@@ -1,16 +1,14 @@
 // Script for loading TPC-H/DS tables to Spark.
 //
-// Suggested run commands:
+// For running this script, the following environment variables must be set:
 //
 // export SPARK_HOME=/path/to/spark     # Path to the Spark installation folder
 // export DATA_DIR=/path/to/data        # Path to TPC-H/TPC-DS Parquet files
 // export DB_NAME=name-of-db            # Name of the database, which must be prefixed by "tpch" or "tpcds"
 // export SPARK_DIRS=/tmp/spark         # Location of Spark folders, such as metastore_db and spark-warehouse
 //
-// . set_spark_env.sh; set +eu; time ${SPARK_HOME}/bin/spark-shell --master ${MASTER_URL} \
-//   --conf spark.sql.warehouse.dir=${SPARK_DIRS}/spark-warehouse \
-//   --conf "spark.hadoop.javax.jdo.option.ConnectionURL=jdbc:derby:${SPARK_DIRS}/metastore_db;create=true" \
-//   --conf spark.sql.parquet.compression.codec=lz4_raw -i ./load_tpc_data.scala || true
+// Suggested run command line:
+// time ./run_spark_shell.sh --conf spark.sql.parquet.compression.codec=lz4_raw -i ./load_tpc_data.scala
 
 import scala.io.{Source, StdIn}
 
