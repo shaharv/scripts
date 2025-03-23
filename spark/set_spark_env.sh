@@ -36,7 +36,7 @@ SPARK_LOG_DIR=${SPARK_LOG_DIR:-/tmp/spark-logs}
 export SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=$SPARK_LOG_DIR"
 
 # --------------------------------------------------------------------------------
-# Set Spark CPU cores options
+# Set Spark CPU cores default values
 # --------------------------------------------------------------------------------
 
 # Set the number of cores for the worker and driver.
@@ -56,8 +56,11 @@ SPARK_EXECUTOR_INSTANCES=${SPARK_EXECUTOR_INSTANCES:-$(bc <<< $SPARK_TOTAL_EXECU
 # application will be served with all cores.
 SPARK_CORES_MAX=${SPARK_CORES_MAX:-$SPARK_WORKER_CORES}
 
+# Spark shuffle partitions minimum is typically twice the number of cores.
+SPARK_SHUFFLE_PARTITIONS=${SPARK_SHUFFLE_PARTITIONS:-$(bc <<< $SPARK_CORES_MAX*2)}
+
 # --------------------------------------------------------------------------------
-# Set Spark memory options
+# Set Spark memory options default values
 # --------------------------------------------------------------------------------
 
 # export SPARK_WORKER_MEMORY for defining the physical memory limit of the worker node.
@@ -119,22 +122,22 @@ SPARK_OPTIONS=${SPARK_OPTIONS:-" \
     --conf spark.eventLog.enabled=true \
     --conf spark.history.fs.logDirectory=${SPARK_LOG_DIR} \
     --conf spark.sql.catalogImplementation=hive \
-    --conf spark.sql.shuffle.partitions=480 \
-    --conf spark.sql.sources.parallelPartitionDiscovery.threshold=120 \
-    --conf spark.sql.sources.parallelPartitionDiscovery.parallelism=120 \
+    --conf spark.sql.shuffle.partitions=${SPARK_SHUFFLE_PARTITIONS} \
+    --conf spark.sql.sources.parallelPartitionDiscovery.threshold=${SPARK_WORKER_CORES} \
+    --conf spark.sql.sources.parallelPartitionDiscovery.parallelism=${SPARK_WORKER_CORES} \
     --conf spark.sql.warehouse.dir=${SPARK_DIRS}/spark-warehouse"}
 
 # --------------------------------------------------------------------------------
-# Print Spark cores and memory values
+# Print Spark cores and memory default values
 # --------------------------------------------------------------------------------
 
-echo "Spark default values:"
-echo
-echo "Spark worker memory (GB):   $SPARK_WORKER_MEMORY_GB"
-echo "Spark worker cores:         $SPARK_WORKER_CORES"
-echo "Spark driver memory (GB):   $SPARK_DRIVER_MEMORY_GB"
-echo "Spark driver cores:         $SPARK_DRIVER_CORES"
-echo "Spark executors:            $SPARK_EXECUTOR_INSTANCES"
-echo "Spark executor memory (GB): $SPARK_EXECUTOR_MEMORY_GB"
-echo "Spark executor cores:       $SPARK_EXECUTOR_CORES"
-echo
+echo "Spark default values set:" >&2
+echo >&2
+echo "Spark worker memory (GB):   $SPARK_WORKER_MEMORY_GB" >&2
+echo "Spark worker cores:         $SPARK_WORKER_CORES" >&2
+echo "Spark driver memory (GB):   $SPARK_DRIVER_MEMORY_GB" >&2
+echo "Spark driver cores:         $SPARK_DRIVER_CORES" >&2
+echo "Spark executors:            $SPARK_EXECUTOR_INSTANCES" >&2
+echo "Spark executor memory (GB): $SPARK_EXECUTOR_MEMORY_GB" >&2
+echo "Spark executor cores:       $SPARK_EXECUTOR_CORES" >&2
+echo >&2
