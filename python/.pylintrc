@@ -1,0 +1,2 @@
+[TYPECHECK]
+disable=broad-except,duplicate-code,global-statement,import-error,invalid-name,line-too-long,logging-fstring-interpolation,missing-class-docstring,missing-function-docstring,missing-module-docstring,wrong-import-position,unused-variable,fixme
