@@ -2,20 +2,20 @@
 
 /**
  * Jenkinsfile Syntax Validator
- * 
+ *
  * This script validates the syntax of a Jenkinsfile by attempting to parse it.
  * It's useful for catching syntax errors before committing changes to version control.
- * 
+ *
  * Prerequisites:
  * 1. Install Groovy:
  *    - On Ubuntu/Debian: sudo apt-get install groovy
  *    - Verify installation: groovy --version
- * 
+ *
  * Usage:
  * 1. Make sure you have Groovy installed on your system
  * 2. Run the script with the Jenkinsfile path as an argument.
  *    If no argument is provided, it will look for a file named 'Jenkinsfile' in the current directory.
- * 
+ *
  * The script will:
  * - Attempt to parse the Jenkinsfile
  * - Print a success message if the syntax is valid
@@ -43,4 +43,4 @@ try {
     println "\nStack trace:"
     e.printStackTrace()
     System.exit(1)
-} 
+}
