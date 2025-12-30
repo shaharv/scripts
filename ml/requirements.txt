@@ -1,0 +1,4 @@
+# For attention_example.py
+numpy
+matplotlib
+PyQt6
