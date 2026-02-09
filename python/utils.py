@@ -1,17 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # (c) Shahar Valiano, 2018
 
-from __future__ import print_function
-
-import os
+import configparser
 import platform
 import re
 import subprocess
 import sys
+from pathlib import Path
 from subprocess import PIPE, STDOUT
 
-import ConfigParser
 
 # -----------------------------------------------------------------------------
 # Utility functions
@@ -19,7 +17,7 @@ import ConfigParser
 
 
 def strip_path(full_path):
-    return os.path.basename(full_path)
+    return Path(full_path).name
 
 
 def eprint(*args, **kwargs):
@@ -27,25 +25,23 @@ def eprint(*args, **kwargs):
 
 
 def mkdir_p(dirname):
-    if not os.path.isdir(dirname):
-        try:
-            os.mkdir(dirname)
-        except OSError:
-            return False
-    return True
+    try:
+        Path(dirname).mkdir(exist_ok=True)
+        return True
+    except OSError:
+        return False
 
 
 def regexp_is_valid(regexp):
     try:
         re.compile(regexp)
-        is_valid = True
+        return True
     except re.error:
-        is_valid = False
-    return is_valid
+        return False
 
 
 def check_file(infile):
-    if not os.path.isfile(infile):
+    if not Path(infile).is_file():
         eprint(f"ERROR: input file {infile} doesn't exist.")
         sys.exit(1)
 
@@ -63,12 +59,11 @@ def check_regexp(regexp):
 
 
 def cut_text(infile, regexp):
-    # Sanity checks
-    if not os.path.isfile(infile) or not regexp_is_valid(regexp):
+    if not Path(infile).is_file() or not regexp_is_valid(regexp):
         return False
     compiled_regexp = re.compile(regexp)
-    with open(infile, encoding='utf-8') as inF:
-        for line in inF:
+    with open(infile, encoding='utf-8') as f:
+        for line in f:
             print(line.strip())
             if compiled_regexp.search(line):
                 break
@@ -76,50 +71,35 @@ def cut_text(infile, regexp):
 
 
 def split_text(infile, resdir, regexp):
-
-    def get_currfile_name(outfile_basename, filecount, outfile_ext):
-        currfile = f"{outfile_basename}.{str(filecount).zfill(3)}.{outfile_ext}"
-        return currfile
-
-    # Sanity checks
-    if not os.path.isfile(infile) or not os.path.isdir(resdir):
+    if not Path(infile).is_file() or not Path(resdir).is_dir():
         return False
     if not regexp_is_valid(regexp):
         return False
 
     compiled_regexp = re.compile(regexp)
-    outfile_basename = f"{resdir}/out"
-    outfile_ext = "txt"
+    resdir = Path(resdir)
     filecount = 0
-    start_index = 1
-    first = True
-    currfile = get_currfile_name(outfile_basename, filecount + start_index, outfile_ext)
-
-    with open(currfile, 'w', encoding='utf-8') as outF:
-        outF.write('')  # Create empty file
+    out_file = None
 
     print("\nProcessing...\n")
 
-    with open(infile, encoding='utf-8') as inF:
-        outF = None
-        for line in inF:
-            if compiled_regexp.search(line):
-                filecount = filecount + 1
-                if first:
-                    outF = open(currfile, 'w', encoding='utf-8')
-                    first = False
-                else:
-                    if outF:
-                        outF.close()
-                    outF = open(currfile, 'w', encoding='utf-8')
-                print(f"Created file {currfile}...")
-                currfile = get_currfile_name(outfile_basename, filecount + start_index, outfile_ext)
-            if not first and outF:
-                outF.write(line)
-        if outF:
-            outF.close()
+    try:
+        with open(infile, encoding='utf-8') as in_file:
+            for line in in_file:
+                if compiled_regexp.search(line):
+                    if out_file:
+                        out_file.close()
+                    filecount += 1
+                    path = resdir / f"out.{filecount:03d}.txt"
+                    out_file = open(path, 'w', encoding='utf-8')
+                    print(f"Created file {path}...")
+                if out_file:
+                    out_file.write(line)
+    finally:
+        if out_file:
+            out_file.close()
+
     if filecount == 0:
-        os.remove(currfile)
         print(f'NOTE: Regular expression "{regexp}" was not matched in input file.')
     print(f"NOTE: Input file split into {filecount} files.")
 
@@ -133,24 +113,20 @@ def print_dict(dict_obj):
         print(f"{key}: {val}")
 
 
-def read_config(configFile):
+def read_config(config_file):
+    conf_dict = {}
+    check_file(config_file)
 
-    confDict = {}
-    check_file(configFile)
-
-    config = ConfigParser.RawConfigParser()
-    config.read(configFile)
+    config = configparser.RawConfigParser()
+    config.read(config_file)
 
     for section in config.sections():
-        for (key, val) in config.items(section):
-            confDict[key] = val
+        for key, val in config.items(section):
+            conf_dict[key] = val
 
-    return confDict
+    return conf_dict
 
 
 def run_process(cmd, args):
-    retcode = subprocess.call([cmd, args], stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-    return retcode
-
-
-# EOF
+    result = subprocess.run([cmd, args], stdin=PIPE, stdout=PIPE, stderr=STDOUT, check=False)
+    return result.returncode

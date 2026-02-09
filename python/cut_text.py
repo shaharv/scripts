@@ -1,56 +1,32 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import os
-import re
-import sys
+# (c) Shahar Valiano, 2017
+
+import argparse
+
 import utils
 
-# -----------------------------------------------------------------------------
-# Helper class
-# -----------------------------------------------------------------------------
 
-class Helper:
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Read a text file and print lines up to the first regex match.")
+    parser.add_argument("input_file", help="Path to the input text file")
+    parser.add_argument("regexp", help="Regular expression to match")
+    return parser.parse_args()
 
-    _scriptName = utils.strip_path(sys.argv[0])
-
-    @classmethod
-    def script_name(cls):
-        return cls._scriptName
-
-    @classmethod
-    def usage(cls):
-        print "Usage: %s <input file> <regexp>\n" % cls._scriptName
-        print "- The script reads <input file> and cuts all text starting"
-        print "  the first list matching <regexp>. Result is printed"
-        print "  to stdout."
-        exit(1)
-
-    @classmethod
-    def parse_args(cls):
-        if len(sys.argv) != 3:
-            cls.usage()
-        infile = sys.argv[1]
-        regexp = sys.argv[2]
-
-        utils.check_file(infile)
-        utils.check_regexp(regexp)
-
-        cls.print_script_params(infile, regexp)
-        return (infile, regexp)
-
-    @classmethod
-    def print_script_params(cls, infile, regexp):
-        print "Script parameters:"
-        print "* Input text file:     %s" % infile
-        print "* Regexp to cut after: %s" % regexp
-
-# -----------------------------------------------------------------------------
-# main
-# -----------------------------------------------------------------------------
 
 def main():
-    (infile, regexp) = Helper.parse_args()
-    utils.cut_text(infile, regexp)
+    args = parse_args()
+
+    utils.check_file(args.input_file)
+    utils.check_regexp(args.regexp)
+
+    print("Script parameters:")
+    print(f"* Input text file:     {args.input_file}")
+    print(f"* Regexp to cut after: {args.regexp}")
+
+    utils.cut_text(args.input_file, args.regexp)
+
 
 if __name__ == '__main__':
     main()
